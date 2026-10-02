@@ -1,5 +1,6 @@
+import { applyMove } from '../../src/engine/actions';
 import { createInitialState, validateLevel } from '../../src/engine/level';
-import type { GameState, LevelData, PlantType, Size } from '../../src/engine/types';
+import type { GameEvent, GameState, LevelData, Move, PlantType, Size } from '../../src/engine/types';
 
 export function makeLevel(overrides: Partial<LevelData> = {}): LevelData {
   return validateLevel({
@@ -33,4 +34,16 @@ export function putPlant(s: GameState, x: number, y: number, type: PlantType, st
 export function putObject(s: GameState, x: number, y: number, name: string, size: Size, kind: 'ruin' | 'scrap' = 'scrap'): GameState {
   s.tiles[y * s.width + x]!.object = { kind, name, size };
   return s;
+}
+
+export function play(state: GameState, ...moves: Move[]): { state: GameState; events: GameEvent[] } {
+  let s = state;
+  const events: GameEvent[] = [];
+  for (const m of moves) {
+    const r = applyMove(s, m);
+    if (!r.ok) throw new Error(`move ${JSON.stringify(m)} rejected: ${r.reason}`);
+    s = r.state;
+    events.push(...r.events);
+  }
+  return { state: s, events };
 }
