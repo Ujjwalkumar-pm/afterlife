@@ -1,0 +1,11 @@
+@page { size: A4; margin: 18mm 16mm; }
+body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; font-size: 10.5pt; line-height: 1.5; color: #1f2a24; max-width: none; }
+h1 { color: #2f6b4f; border-bottom: 2px solid #2f6b4f; padding-bottom: 4px; }
+h2 { color: #2f6b4f; margin-top: 1.4em; page-break-after: avoid; }
+h3 { color: #3d5a4a; page-break-after: avoid; }
+table { border-collapse: collapse; width: 100%; margin: 0.6em 0; }
+tr { page-break-inside: avoid; }
+th, td { border: 1px solid #c9d6cf; padding: 5px 8px; vertical-align: top; text-align: left; }
+th { background: #e8f1ec; }
+blockquote { border-left: 4px solid #8fbf9f; margin: 0.8em 0; padding: 0.2em 1em; background: #f3f8f5; }
+a { color: #2f6b4f; word-break: break-all; }
