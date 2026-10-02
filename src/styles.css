@@ -1,0 +1,55 @@
+:root {
+  --bg: #23251f;
+  --panel: rgba(35, 37, 31, 0.84);
+  --ink: #f1ede2;
+  --muted: #b9b4a5;
+  --accent: #9cc25a;
+  --accent-ink: #1d2416;
+  --radius: 14px;
+  font-family: 'Nunito', system-ui, sans-serif;
+  color: var(--ink);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+#stage { position: fixed; inset: 0; }
+#ui { position: fixed; inset: 0; pointer-events: none; }
+#ui .screen, #ui .hud-top, #ui .tray, #ui .hud-tools, #ui .overlay { pointer-events: auto; }
+button {
+  font: inherit; color: inherit; background: var(--panel);
+  border: 1px solid rgba(241, 237, 226, 0.18); border-radius: 999px;
+  min-height: 44px; min-width: 44px; padding: 0 18px; cursor: pointer;
+}
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary, button.selected { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px 16px; text-align: center; overflow-y: auto; }
+.title-screen { background: linear-gradient(to bottom, rgba(35, 37, 31, 0.1), rgba(35, 37, 31, 0.8)); }
+.select-screen, .settings-screen, .credits-screen { background: var(--bg); }
+.logo { font-size: clamp(48px, 12vw, 96px); font-weight: 700; letter-spacing: 0.04em; margin: 0; }
+.tagline { color: var(--muted); margin: 0; }
+.menu { display: flex; flex-direction: column; gap: 12px; min-width: 220px; }
+.level-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; width: min(820px, 100%); }
+.level-card { width: 100%; min-height: 120px; border-radius: var(--radius); display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 2px; padding: 14px; background: #3a3a34; text-align: left; }
+.level-card.completed { background: #46612f; }
+.level-card .num { font-size: 28px; font-weight: 700; }
+.level-card .status { color: var(--muted); font-size: 14px; }
+.hud-top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; align-items: center; gap: 12px; }
+.level-name { font-weight: 700; white-space: nowrap; }
+.meter { flex: 1; height: 12px; min-width: 60px; background: rgba(241, 237, 226, 0.15); border-radius: 999px; overflow: hidden; }
+.meter-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
+.batches { display: flex; gap: 4px; }
+.batches i { display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.hint { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 58px); left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100% - 32px); padding: 8px 14px; background: var(--panel); border-radius: 999px; font-size: 15px; }
+.hud-tools { position: absolute; right: 12px; top: calc(max(12px, env(safe-area-inset-top)) + 110px); display: flex; flex-direction: column; gap: 8px; }
+.hud-tools button { padding: 0; }
+.tray { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; overflow-x: auto; padding: 12px 12px max(12px, env(safe-area-inset-bottom)); background: linear-gradient(to top, rgba(35, 37, 31, 0.92), transparent); }
+.tray .group-label { flex: none; align-self: center; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+.tray button { flex: none; display: flex; align-items: center; gap: 8px; }
+.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 50%; }
+.count { font-weight: 700; }
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px 16px; background: rgba(35, 37, 31, 0.62); text-align: center; }
+.overlay h2 { font-size: 32px; margin: 0; }
+.overlay .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.toggle { display: flex; gap: 10px; align-items: center; font-size: 18px; }
+.toggle input { width: 22px; height: 22px; }
+@media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
