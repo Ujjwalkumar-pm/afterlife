@@ -138,3 +138,24 @@ describe('applyMove', () => {
     expect(applyMove(s, { type: 'harvest', x: 0, y: 0 }).ok).toBe(false);
   });
 });
+
+describe('malformed moves from JSON or UI', () => {
+  it('rejects an unknown plant type without throwing', () => {
+    const s = makeState();
+    expect(placeSeed(s, 'cactus' as never, at(0, 0))).toEqual({ ok: false, reason: 'unknown plant' });
+    expect(placeSeed(s, 'toString' as never, at(0, 0))).toEqual({ ok: false, reason: 'unknown plant' });
+  });
+  it('rejects an unknown or missing move without throwing', () => {
+    const s = makeState();
+    expect(applyMove(s, { type: 'water', x: 0, y: 0 } as never)).toEqual({ ok: false, reason: 'unknown move' });
+    expect(applyMove(s, null as never)).toEqual({ ok: false, reason: 'unknown move' });
+  });
+});
+
+describe('stuck when scrap has nowhere to go', () => {
+  it('emits stuck when scrap remains but no tile can take it', () => {
+    const s = makeState({ width: 2, height: 1, ground: ['..'], seeds: { moss: 2 }, batches: [['tyre']] });
+    const { events } = play(s, { type: 'seed', plant: 'moss', x: 0, y: 0 }, { type: 'seed', plant: 'moss', x: 1, y: 0 });
+    expect(events.at(-1)).toEqual({ type: 'stuck' });
+  });
+});

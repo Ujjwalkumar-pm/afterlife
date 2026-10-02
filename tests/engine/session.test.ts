@@ -56,3 +56,18 @@ describe('Session', () => {
     expect(session.state).toEqual(first);
   });
 });
+
+describe('Session state safety', () => {
+  it('rejects writes to the current state, so undo and restart stay correct', () => {
+    const session = new Session(makeLevel());
+    expect(() => {
+      session.state.seeds.vine = 99;
+    }).toThrow(TypeError);
+    session.apply({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    expect(() => {
+      session.state.tiles[0]!.plant!.stage = 5;
+    }).toThrow(TypeError);
+    session.restart();
+    expect(session.state.seeds.vine).toBe(5);
+  });
+});

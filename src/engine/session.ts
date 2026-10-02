@@ -2,15 +2,30 @@ import { applyMove } from './actions';
 import { createInitialState } from './level';
 import type { ActionResult, GameState, LevelData, Move } from './types';
 
-/** Holds the current state plus undo history. States are never mutated, so they can be shared safely. */
+function deepFreeze<T>(value: T): T {
+  if (typeof value === 'object' && value !== null && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value)) deepFreeze(child);
+  }
+  return value;
+}
+
+/**
+ * Holds the current state plus undo history. Every stored state is deep-frozen, so a stray
+ * write (e.g. from rendering code) throws instead of silently corrupting undo or restart.
+ */
 export class Session {
-  state: GameState;
+  private current: GameState;
   private readonly initial: GameState;
   private history: GameState[] = [];
 
   constructor(level: LevelData) {
-    this.initial = createInitialState(level);
-    this.state = this.initial;
+    this.initial = deepFreeze(createInitialState(level));
+    this.current = this.initial;
+  }
+
+  get state(): GameState {
+    return this.current;
   }
 
   get canUndo(): boolean {
@@ -20,8 +35,8 @@ export class Session {
   apply(move: Move): ActionResult {
     const result = applyMove(this.state, move);
     if (result.ok) {
-      this.history.push(this.state);
-      this.state = result.state;
+      this.history.push(this.current);
+      this.current = deepFreeze(result.state);
     }
     return result;
   }
@@ -29,12 +44,12 @@ export class Session {
   undo(): boolean {
     const previous = this.history.pop();
     if (!previous) return false;
-    this.state = previous;
+    this.current = previous;
     return true;
   }
 
   restart(): void {
     this.history = [];
-    this.state = this.initial;
+    this.current = this.initial;
   }
 }

@@ -1,4 +1,4 @@
-import { PLANTS, RADIUS, SCRAP } from './catalog';
+import { PLANT_TYPES, PLANTS, RADIUS, SCRAP } from './catalog';
 import { cloneState, tileAt } from './grid';
 import { growAround } from './growth';
 import { coverage, isStuck } from './queries';
@@ -22,6 +22,7 @@ function finish(prev: GameState, next: GameState, events: GameEvent[]): ActionRe
 }
 
 export function placeSeed(s: GameState, plant: PlantType, p: Pos): ActionResult {
+  if (!PLANT_TYPES.includes(plant)) return fail('unknown plant');
   const tile = openTile(s, p);
   if (typeof tile === 'string') return fail(tile);
   if (tile.plant) return fail('tile already has a plant');
@@ -68,6 +69,7 @@ export function harvest(s: GameState, p: Pos): ActionResult {
 }
 
 export function applyMove(s: GameState, move: Move): ActionResult {
+  if (typeof move !== 'object' || move === null) return fail('unknown move');
   const p = { x: move.x, y: move.y };
   switch (move.type) {
     case 'seed':
@@ -76,5 +78,7 @@ export function applyMove(s: GameState, move: Move): ActionResult {
       return placeScrap(s, move.slot, p);
     case 'harvest':
       return harvest(s, p);
+    default:
+      return fail('unknown move');
   }
 }

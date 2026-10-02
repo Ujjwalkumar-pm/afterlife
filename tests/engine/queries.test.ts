@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cellStatus, coverage, isStuck, previewScrap } from '../../src/engine/queries';
-import { makeState, putPlant } from './helpers';
+import { makeState, putObject, putPlant } from './helpers';
 
 describe('coverage', () => {
   it('is 0 for an empty level', () => {
@@ -54,5 +54,14 @@ describe('previewScrap', () => {
     const s = makeState();
     expect(previewScrap(s, 99, { x: 0, y: 0 })).toEqual([]);
     expect(previewScrap(s, 0, { x: -1, y: 0 })).toEqual([]);
+  });
+});
+
+describe('isStuck with no free tile', () => {
+  it('is true when scrap remains but every tile is blocked, planted or occupied', () => {
+    const s = makeState({ width: 3, height: 1, ground: ['X..'], batches: [['tyre']] });
+    putPlant(s, 1, 0, 'moss', 0);
+    putObject(s, 2, 0, 'bin', 'small', 'ruin');
+    expect(isStuck(s)).toBe(true);
   });
 });

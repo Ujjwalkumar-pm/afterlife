@@ -27,8 +27,11 @@ export function cellStatus(s: GameState, p: Pos): CellStatus | null {
   return 'grown';
 }
 
+/** Not won, and no scrap can be placed: none is left, or no tile is free (unblocked, no object, no plant). */
 export function isStuck(s: GameState): boolean {
-  return !s.won && s.tray.length === 0 && s.batches.length === 0;
+  if (s.won) return false;
+  if (s.tray.length === 0 && s.batches.length === 0) return true;
+  return !s.tiles.some((t) => t.ground !== 'blocked' && t.object === null && t.plant === null);
 }
 
 /** Plant cells that would get a growth tick if the scrap in `slot` were placed at `p`. */
