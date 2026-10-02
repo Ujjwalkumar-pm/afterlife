@@ -1,0 +1,206 @@
+{
+  "id": "rooftop",
+  "name": "Rooftop",
+  "hint": "Vines climb onto objects. Covered scrap counts toward the meter.",
+  "width": 7,
+  "height": 7,
+  "ground": [
+    "#######",
+    "#######",
+    "###X###",
+    "#######",
+    "#######",
+    "#######",
+    "#######"
+  ],
+  "ruins": [
+    {
+      "x": 1,
+      "y": 1,
+      "name": "water-tank",
+      "size": "medium"
+    },
+    {
+      "x": 5,
+      "y": 5,
+      "name": "ac-unit",
+      "size": "medium"
+    }
+  ],
+  "seeds": {
+    "moss": 4,
+    "vine": 4
+  },
+  "batches": [
+    [
+      "crate",
+      "tyre",
+      "tyre"
+    ],
+    [
+      "crate",
+      "tyre",
+      "can"
+    ],
+    [
+      "crate",
+      "crate",
+      "tyre"
+    ],
+    [
+      "barrel",
+      "tyre",
+      "can"
+    ],
+    [
+      "tyre",
+      "tyre",
+      "crate"
+    ],
+    [
+      "can",
+      "tyre",
+      "crate"
+    ],
+    [
+      "tyre",
+      "crate",
+      "crate"
+    ],
+    [
+      "can",
+      "tyre",
+      "barrel"
+    ]
+  ],
+  "target": 0.6,
+  "rngSeed": 202,
+  "solution": [
+    {
+      "type": "seed",
+      "plant": "moss",
+      "x": 2,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 1,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 3,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 4,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 2,
+      "x": 5,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 0,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 4
+    }
+  ]
+}

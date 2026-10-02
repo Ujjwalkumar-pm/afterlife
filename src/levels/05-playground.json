@@ -1,0 +1,286 @@
+{
+  "id": "playground",
+  "name": "Playground",
+  "hint": "A car shell feeds everything within three steps.",
+  "width": 8,
+  "height": 8,
+  "ground": [
+    "........",
+    "........",
+    "...XX...",
+    "........",
+    "........",
+    "...XX...",
+    "........",
+    "........"
+  ],
+  "ruins": [
+    {
+      "x": 1,
+      "y": 1,
+      "name": "slide",
+      "size": "large"
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "name": "swings",
+      "size": "medium"
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "name": "roundabout",
+      "size": "medium"
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "name": "sandpit",
+      "size": "small"
+    }
+  ],
+  "seeds": {
+    "moss": 4,
+    "vine": 4,
+    "flower": 2,
+    "bamboo": 2
+  },
+  "harvestYield": "vine",
+  "batches": [
+    [
+      "tyre",
+      "crate",
+      "can"
+    ],
+    [
+      "car",
+      "tyre",
+      "cone"
+    ],
+    [
+      "crate",
+      "barrel",
+      "tyre"
+    ],
+    [
+      "car",
+      "can",
+      "tyre"
+    ],
+    [
+      "sign",
+      "tyre",
+      "crate"
+    ],
+    [
+      "can",
+      "crate",
+      "tyre"
+    ],
+    [
+      "cone",
+      "tyre",
+      "car"
+    ],
+    [
+      "tyre",
+      "barrel",
+      "crate"
+    ],
+    [
+      "tyre",
+      "can",
+      "car"
+    ],
+    [
+      "crate",
+      "tyre",
+      "sign"
+    ]
+  ],
+  "target": 0.55,
+  "rngSeed": 505,
+  "solution": [
+    {
+      "type": "seed",
+      "plant": "moss",
+      "x": 1,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 2,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 3,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 6,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 0,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 4,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 5,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 2,
+      "x": 6,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 6,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 7,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 7,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 7,
+      "y": 2
+    }
+  ]
+}

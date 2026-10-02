@@ -1,0 +1,218 @@
+{
+  "id": "railway-platform",
+  "name": "Railway Platform",
+  "hint": "Bamboo grows tall in tight spaces and never spreads.",
+  "width": 4,
+  "height": 12,
+  "ground": [
+    "####",
+    "####",
+    "#X##",
+    "####",
+    "####",
+    "####",
+    "#X##",
+    "####",
+    "####",
+    "####",
+    "#X##",
+    "####"
+  ],
+  "ruins": [
+    {
+      "x": 2,
+      "y": 4,
+      "name": "bench",
+      "size": "small"
+    },
+    {
+      "x": 2,
+      "y": 8,
+      "name": "station-sign",
+      "size": "medium"
+    }
+  ],
+  "seeds": {
+    "bamboo": 6,
+    "moss": 4,
+    "vine": 2
+  },
+  "batches": [
+    [
+      "tyre",
+      "crate",
+      "can"
+    ],
+    [
+      "crate",
+      "tyre",
+      "tyre"
+    ],
+    [
+      "barrel",
+      "can",
+      "tyre"
+    ],
+    [
+      "crate",
+      "cone",
+      "tyre"
+    ],
+    [
+      "can",
+      "crate",
+      "tyre"
+    ],
+    [
+      "tyre",
+      "tyre",
+      "crate"
+    ],
+    [
+      "tyre",
+      "can",
+      "barrel"
+    ],
+    [
+      "tyre",
+      "cone",
+      "crate"
+    ]
+  ],
+  "target": 0.55,
+  "rngSeed": 404,
+  "solution": [
+    {
+      "type": "seed",
+      "plant": "moss",
+      "x": 1,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 2,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 2,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 2,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 3,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 2,
+      "x": 0,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 8
+    }
+  ]
+}

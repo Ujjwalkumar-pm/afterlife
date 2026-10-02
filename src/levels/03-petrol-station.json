@@ -1,0 +1,267 @@
+{
+  "id": "petrol-station",
+  "name": "Petrol Station",
+  "hint": "Grown flowers bloom. Tap a bloom to collect a new seed.",
+  "width": 8,
+  "height": 8,
+  "ground": [
+    "........",
+    "..####..",
+    "..####..",
+    "........",
+    "........",
+    "..####..",
+    "..####..",
+    "........"
+  ],
+  "ruins": [
+    {
+      "x": 2,
+      "y": 1,
+      "name": "pump",
+      "size": "medium"
+    },
+    {
+      "x": 5,
+      "y": 1,
+      "name": "pump",
+      "size": "medium"
+    },
+    {
+      "x": 3,
+      "y": 5,
+      "name": "old-car",
+      "size": "large"
+    }
+  ],
+  "seeds": {
+    "moss": 4,
+    "vine": 2,
+    "flower": 4
+  },
+  "harvestYield": "moss",
+  "batches": [
+    [
+      "tyre",
+      "can",
+      "crate"
+    ],
+    [
+      "tyre",
+      "cone",
+      "crate"
+    ],
+    [
+      "can",
+      "tyre",
+      "barrel"
+    ],
+    [
+      "tyre",
+      "tyre",
+      "sign"
+    ],
+    [
+      "can",
+      "cone",
+      "crate"
+    ],
+    [
+      "crate",
+      "can",
+      "tyre"
+    ],
+    [
+      "crate",
+      "cone",
+      "tyre"
+    ],
+    [
+      "barrel",
+      "tyre",
+      "can"
+    ],
+    [
+      "sign",
+      "tyre",
+      "tyre"
+    ],
+    [
+      "crate",
+      "cone",
+      "can"
+    ]
+  ],
+  "target": 0.55,
+  "rngSeed": 303,
+  "solution": [
+    {
+      "type": "seed",
+      "plant": "moss",
+      "x": 1,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 2,
+      "x": 3,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 4,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 2,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 2,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 5,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 4,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 5,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 6,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 6,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 7,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 6,
+      "y": 0
+    }
+  ]
+}

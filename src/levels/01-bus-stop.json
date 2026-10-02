@@ -1,0 +1,158 @@
+{
+  "id": "bus-stop",
+  "name": "Bus Stop",
+  "hint": "Place scrap near a seed. Everything inside its ring grows.",
+  "width": 6,
+  "height": 6,
+  "ground": [
+    "##....",
+    "##....",
+    "......",
+    "......",
+    "....##",
+    "....##"
+  ],
+  "ruins": [
+    {
+      "x": 2,
+      "y": 2,
+      "name": "bench",
+      "size": "small"
+    },
+    {
+      "x": 3,
+      "y": 4,
+      "name": "bin",
+      "size": "small"
+    }
+  ],
+  "seeds": {
+    "moss": 6
+  },
+  "batches": [
+    [
+      "tyre",
+      "tyre",
+      "tyre"
+    ],
+    [
+      "tyre",
+      "tyre",
+      "tyre"
+    ],
+    [
+      "can",
+      "can",
+      "cone"
+    ],
+    [
+      "tyre",
+      "tyre",
+      "tyre"
+    ],
+    [
+      "tyre",
+      "tyre",
+      "tyre"
+    ],
+    [
+      "cone",
+      "can",
+      "can"
+    ]
+  ],
+  "target": 0.6,
+  "rngSeed": 101,
+  "solution": [
+    {
+      "type": "seed",
+      "plant": "moss",
+      "x": 2,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 0
+    }
+  ]
+}
