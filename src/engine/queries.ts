@@ -22,7 +22,7 @@ export function cellStatus(s: GameState, p: Pos): CellStatus | null {
   if (cell.stage === 0) return 'seed';
   const rule = PLANTS[cell.type];
   if (cell.stage < rule.maxStage) return 'growing';
-  const spreads = rule.onGrown === 'spread' || rule.onGrown === 'spreadPreferObjects';
+  const spreads = rule.onGrown === 'spread' || rule.onGrown === 'climb';
   if (spreads && eligibleNeighbours(s, p, cell.type).length === 0) return 'blocked';
   return 'grown';
 }

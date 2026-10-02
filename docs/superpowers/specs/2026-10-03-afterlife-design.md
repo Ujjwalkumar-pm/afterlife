@@ -1,6 +1,6 @@
 # Afterlife — Design Spec (v1)
 
-*3 October 2026 · Status: awaiting review · Owner: Ujjwal (director) · Builder: Claude*
+*3 October 2026 · Status: approved; growth rule revised 3 Oct (see §11) · Owner: Ujjwal (director) · Builder: Claude*
 
 ## 1. Purpose and success criteria
 
@@ -62,8 +62,8 @@ Distance between tiles is **Manhattan distance** (|dx| + |dy|), so a radius show
 
 | Plant | Can grow on | Max stage | When grown (stage = max) and fed again |
 |---|---|---|---|
-| **Moss** | Ground, small scrap, small ruins | 2 | Spreads into **1** random eligible neighbouring tile |
-| **Vine** | Ground and **any** scrap or ruin | 3 | Spreads into 1 eligible neighbour, **preferring tiles that hold an object** |
+| **Moss** | Ground, small scrap, small ruins | 2 | Spreads into **every** eligible neighbouring tile |
+| **Vine** | Ground and **any** scrap or ruin | 3 | Climbs onto **every** eligible neighbour holding an object; with none, creeps onto **1** random bare neighbour |
 | **Flower** | Ground only | 3 | Grows a **bloom** (max 1 at a time) that the player can harvest |
 | **Bamboo** | Ground only | 5 | Does not spread; it's a tall, narrow cover with a large visual height |
 
@@ -211,3 +211,7 @@ Afterlife/
   README.md        what it is, how to play, how to run, credits
   LICENSE          MIT (code); art stays under its own CC0 licence
 ```
+
+## 11. Change log
+
+- **3 Oct 2026 — growth rule revised (approved by Ujjwal).** In the first version, moss and vines spread one tile per growth tick. The level solver showed that rule caps every level at about 17–25% coverage, because scrap fills the scene faster than plants can cover it. Grown moss now spreads into every eligible neighbour, and vines climb onto every neighbouring object (or creep one tile on bare ground). Each level also gets about twice as many seeds and scrap.

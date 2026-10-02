@@ -41,13 +41,15 @@ describe('Session', () => {
   });
 
   it('undo restores RNG so redoing the same move gives an identical garden', () => {
-    const session = new Session(makeLevel({ batches: [['car', 'car', 'car', 'car']] }));
-    session.apply({ type: 'seed', plant: 'moss', x: 2, y: 2 });
-    session.apply({ type: 'scrap', slot: 0, x: 0, y: 2 }); // moss -> stage 1
-    session.apply({ type: 'scrap', slot: 0, x: 4, y: 2 }); // moss -> stage 2 (grown)
-    const spreadMove = { type: 'scrap' as const, slot: 0, x: 2, y: 0 };
-    const r = session.apply(spreadMove); // grown moss spreads to a random neighbour
-    expect(r.ok && r.events.some((e) => e.type === 'spread')).toBe(true);
+    const session = new Session(makeLevel({ batches: [['car', 'car', 'car', 'car', 'car']] }));
+    session.apply({ type: 'seed', plant: 'vine', x: 2, y: 2 });
+    session.apply({ type: 'scrap', slot: 0, x: 0, y: 2 }); // vine -> stage 1
+    session.apply({ type: 'scrap', slot: 0, x: 4, y: 2 }); // vine -> stage 2
+    session.apply({ type: 'scrap', slot: 0, x: 2, y: 0 }); // vine -> stage 3 (grown)
+    const spreadMove = { type: 'scrap' as const, slot: 0, x: 2, y: 4 };
+    // Neighbours (2,1),(3,2),(2,3),(1,2) hold no object, so the vine creeps onto one random tile.
+    const r = session.apply(spreadMove);
+    expect(r.ok && r.events.filter((e) => e.type === 'spread').length).toBe(1);
     const first = structuredClone(session.state);
     session.undo();
     session.apply(spreadMove);

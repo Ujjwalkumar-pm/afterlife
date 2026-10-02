@@ -10,21 +10,33 @@ export function eligibleNeighbours(s: GameState, p: Pos, type: PlantType): Pos[]
   });
 }
 
-function spread(s: GameState, from: Pos, cell: PlantCell, preferObjects: boolean, events: GameEvent[]): void {
-  let options = eligibleNeighbours(s, from, cell.type);
+function plant(s: GameState, from: Pos, to: Pos, cell: PlantCell, events: GameEvent[]): void {
+  tileAt(s, to)!.plant = { plantId: cell.plantId, type: cell.type, stage: 1, bloom: false };
+  events.push({ type: 'spread', from, to, plant: cell.type });
+}
+
+/**
+ * 'spread': fills every eligible neighbour.
+ * 'climb': fills every eligible neighbour holding an object; with none, creeps onto one random bare neighbour.
+ */
+function spread(s: GameState, from: Pos, cell: PlantCell, mode: 'spread' | 'climb', events: GameEvent[]): void {
+  const options = eligibleNeighbours(s, from, cell.type);
   if (options.length === 0) {
     events.push({ type: 'blocked', pos: from });
     return;
   }
-  if (preferObjects) {
-    const withObject = options.filter((q) => tileAt(s, q)!.object !== null);
-    if (withObject.length > 0) options = withObject;
+  if (mode === 'spread') {
+    for (const to of options) plant(s, from, to, cell, events);
+    return;
+  }
+  const withObject = options.filter((q) => tileAt(s, q)!.object !== null);
+  if (withObject.length > 0) {
+    for (const to of withObject) plant(s, from, to, cell, events);
+    return;
   }
   const [i, nextRng] = pickIndex(s.rng, options.length);
   s.rng = nextRng;
-  const to = options[i]!;
-  tileAt(s, to)!.plant = { plantId: cell.plantId, type: cell.type, stage: 1, bloom: false };
-  events.push({ type: 'spread', from, to, plant: cell.type });
+  plant(s, from, options[i]!, cell, events);
 }
 
 function tickCell(s: GameState, p: Pos, events: GameEvent[]): void {
@@ -45,8 +57,8 @@ function tickCell(s: GameState, p: Pos, events: GameEvent[]): void {
     case 'none':
       return;
     case 'spread':
-    case 'spreadPreferObjects':
-      spread(s, p, cell, rule.onGrown === 'spreadPreferObjects', events);
+    case 'climb':
+      spread(s, p, cell, rule.onGrown, events);
   }
 }
 
