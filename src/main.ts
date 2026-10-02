@@ -8,7 +8,7 @@ import { DioramaScene } from './render/scene/DioramaScene';
 import { safeStorage } from './save/save';
 
 const scene = new DioramaScene();
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.WEBGL,
   parent: 'stage',
   backgroundColor: '#23251f',
@@ -28,4 +28,4 @@ const onError = (err: unknown) => {
 window.addEventListener('error', (e) => onError(e.error ?? e.message));
 window.addEventListener('unhandledrejection', (e) => onError(e.reason));
 
-if (import.meta.env.DEV) (window as unknown as { afterlife: App }).afterlife = app;
+if (import.meta.env.DEV) Object.assign(window as object, { afterlife: app, afterlifeGame: game });
