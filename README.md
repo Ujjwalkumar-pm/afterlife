@@ -1,0 +1,30 @@
+# Afterlife
+
+A calm isometric web game about nature reclaiming abandoned places. Plant seeds among the ruins, drop scrap to feed them, and watch moss, vines, flowers and bamboo take the scene back.
+
+> Status: in development. The rules engine and levels are done; the playable game is next.
+
+## How it plays
+
+- Placing scrap makes every plant within its ring grow one step. Small scrap reaches 1 tile, medium 2 and large 3.
+- Grown moss and vines spread, flowers bloom (tap a bloom for a seed), and bamboo grows tall.
+- Fill the meter by covering the scene, including the scrap you've placed. There's no timer and no losing, and you can always undo.
+
+## Development
+
+    npm install
+    npm test            # rules engine + level solvability tests
+    npm run typecheck
+    npm run solve -- src/levels/01-bus-stop.json   # regenerate a level's reference solution
+
+The rules live in `src/engine/`, pure TypeScript with no framework. Levels are JSON files in `src/levels/`.
+
+## Credits
+
+- Design and direction: Ujjwal Kumar
+- Inspired by the mechanics of *Cloud Gardens* by Noio. Afterlife uses no names, art, levels or audio from it.
+- Art (coming in v1): Kenney.nl assets, CC0.
+
+## Licence
+
+Code: MIT (see `LICENSE`). Third-party art keeps its own licence.
