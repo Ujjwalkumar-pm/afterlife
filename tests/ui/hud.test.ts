@@ -1,0 +1,120 @@
+// @vitest-environment happy-dom
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PlayController } from '../../src/game/controller';
+import { Hud, type HudHandlers } from '../../src/ui/hud';
+import { makeLevel } from '../engine/helpers';
+
+const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
+  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(),
+});
+const meta = { name: 'Bus <Stop>', hint: 'Place scrap near a seed.', hasNext: true };
+const click = (el: Element | null) => (el as HTMLElement).click();
+
+let root: HTMLElement;
+beforeEach(() => {
+  document.body.innerHTML = '<div id="ui"></div>';
+  root = document.getElementById('ui')!;
+});
+
+describe('Hud', () => {
+  it('renders name (escaped), hint, meter and batch dots', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre'], ['can'], ['cone']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    expect(root.querySelector('.level-name')!.textContent).toBe('Bus <Stop>');
+    expect(root.querySelector('.hint')!.textContent).toBe('Place scrap near a seed.');
+    expect((root.querySelector('.meter-fill') as HTMLElement).style.width).toBe('0%');
+    expect(root.querySelectorAll('.batches i')).toHaveLength(2);
+  });
+
+  it('lists seeds with counts and scrap with reach, and marks the selection', () => {
+    const c = new PlayController(makeLevel({ seeds: { moss: 2, flower: 1 }, batches: [['tyre', 'crate']] }));
+    c.select({ kind: 'seed', plant: 'moss' });
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    const seeds = root.querySelectorAll('[data-action="seed"]');
+    expect(seeds).toHaveLength(2);
+    expect(seeds[0]!.textContent).toContain('Moss');
+    expect(seeds[0]!.querySelector('.count')!.textContent).toBe('2');
+    expect(seeds[0]!.getAttribute('aria-pressed')).toBe('true');
+    const scrap = root.querySelectorAll('[data-action="scrap"]');
+    expect(scrap).toHaveLength(2);
+    expect(scrap[1]!.textContent).toContain('Crate');
+    expect(scrap[1]!.textContent).toContain('2');
+  });
+
+  it('routes clicks to handlers', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre', 'crate']] }));
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, meta);
+    click(root.querySelector('[data-plant="vine"]'));
+    expect(h.select).toHaveBeenCalledWith({ kind: 'seed', plant: 'vine' });
+    click(root.querySelector('[data-slot="1"]'));
+    expect(h.select).toHaveBeenCalledWith({ kind: 'scrap', slot: 1 });
+    click(root.querySelector('[data-action="rotate-left"]'));
+    expect(h.rotate).toHaveBeenCalledWith(-1);
+    click(root.querySelector('[data-action="menu"]'));
+    expect(h.menu).toHaveBeenCalled();
+  });
+
+  it('disables undo until there is something to undo', () => {
+    const c = new PlayController(makeLevel());
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, meta);
+    const undo = root.querySelector('[data-action="undo"]') as HTMLButtonElement;
+    expect(undo.disabled).toBe(true);
+    click(undo);
+    expect(h.undo).not.toHaveBeenCalled();
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    hud.render(c.view, meta);
+    expect((root.querySelector('[data-action="undo"]') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('shows the restored overlay with Next or Back, and Keep decorating', () => {
+    const c = new PlayController(makeLevel({ width: 3, height: 1, ground: ['...'], target: 0.3, batches: [['tyre', 'tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, meta);
+    expect(root.querySelector('.overlay h2')!.textContent).toBe('Scene restored');
+    click(root.querySelector('[data-action="next"]'));
+    expect(h.next).toHaveBeenCalled();
+    click(root.querySelector('[data-action="keep"]'));
+    expect(h.keepDecorating).toHaveBeenCalled();
+    hud.render(c.view, { ...meta, hasNext: false });
+    expect(root.querySelector('[data-action="next"]')).toBeNull();
+    expect(root.querySelector('.overlay [data-action="menu"]')).not.toBeNull();
+  });
+
+  it('shows the rests overlay with Undo and Restart', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
+    c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    expect(root.querySelector('.overlay h2')!.textContent).toBe('The garden rests…');
+    expect(root.querySelector('.overlay [data-action="undo"]')).not.toBeNull();
+    expect(root.querySelector('.overlay [data-action="restart"]')).not.toBeNull();
+  });
+
+  it('shows an error overlay whose Restart clears it', () => {
+    const c = new PlayController(makeLevel());
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, meta);
+    hud.showError();
+    expect(root.querySelector('.overlay h2')!.textContent).toBe('Something went wrong');
+    click(root.querySelector('.overlay [data-action="restart"]'));
+    expect(h.restart).toHaveBeenCalled();
+    hud.render(c.view, meta);
+    expect(root.querySelector('.overlay')).toBeNull();
+  });
+
+  it('destroy removes its element', () => {
+    const hud = new Hud(root, handlers());
+    hud.destroy();
+    expect(root.querySelector('.hud')).toBeNull();
+  });
+});
