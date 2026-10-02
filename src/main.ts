@@ -2,20 +2,30 @@ import '@fontsource/nunito/400.css';
 import '@fontsource/nunito/700.css';
 import './styles.css';
 import Phaser from 'phaser';
-import { PlayController } from './game/controller';
+import { App } from './app/app';
 import { LEVELS } from './levels';
 import { DioramaScene } from './render/scene/DioramaScene';
+import { safeStorage } from './save/save';
 
 const scene = new DioramaScene();
-const game = new Phaser.Game({
+new Phaser.Game({
   type: Phaser.WEBGL,
   parent: 'stage',
   backgroundColor: '#23251f',
   scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
   scene: [scene],
 });
-const params = new URLSearchParams(location.search);
-const ctrl = new PlayController(LEVELS[Number(params.get('level') ?? 0)]!);
-scene.attach(ctrl, { reducedMotion: false, interactive: true });
-(window as unknown as { ctrl: PlayController; game: Phaser.Game }).ctrl = ctrl;
-(window as unknown as { game: Phaser.Game }).game = game;
+
+const app = new App(document.getElementById('ui')!, { show: (ctrl, opts) => scene.attach(ctrl, opts) }, safeStorage(), LEVELS, {
+  demoIntervalMs: 900,
+  prefersReducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+});
+
+const onError = (err: unknown) => {
+  console.error('[Afterlife]', err);
+  app.showError();
+};
+window.addEventListener('error', (e) => onError(e.error ?? e.message));
+window.addEventListener('unhandledrejection', (e) => onError(e.reason));
+
+if (import.meta.env.DEV) (window as unknown as { afterlife: App }).afterlife = app;
