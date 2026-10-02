@@ -26,6 +26,7 @@ export class Hud {
   readonly el: HTMLElement;
   private error = false;
   private last: { view: View; meta: HudMeta } | null = null;
+  private lastHtml = '';
 
   constructor(root: HTMLElement, private readonly handlers: HudHandlers) {
     this.el = document.createElement('div');
@@ -36,7 +37,12 @@ export class Hud {
 
   render(view: View, meta: HudMeta): void {
     this.last = { view, meta };
-    this.el.innerHTML = this.html(view, meta);
+    const html = this.html(view, meta);
+    // Unchanged markup (e.g. a camera rotation) keeps the same nodes, so a press in progress
+    // still completes as a click and keyboard focus is not lost.
+    if (html === this.lastHtml) return;
+    this.lastHtml = html;
+    this.el.innerHTML = html;
   }
 
   showError(): void {

@@ -3,6 +3,7 @@ import { cellStatus, type GameEvent, type Pos } from '../../engine';
 import type { PlayController, View } from '../../game/controller';
 import { depth, sceneBounds, toGrid, toScreen, type IsoView, type Rotation } from '../iso/projection';
 import { codeObjectArt, drawBlock, type ObjectArt } from '../objects/objectArt';
+import { Celebration } from './celebration';
 import { darken, lerpColor, PALETTE } from '../palette';
 import { drawPrims } from '../plants/plantArt';
 import { plantPrims } from '../plants/plantShapes';
@@ -42,7 +43,10 @@ export class DioramaScene extends Phaser.Scene {
   private ready = false;
   private pending: { ctrl: PlayController | null; opts: AttachOptions } | null = null;
   private pinch: { dist: number; zoom: number } | null = null;
-  private turning = false;
+  private celebration = new Celebration((ms, fn) => {
+    const t = this.time.delayedCall(ms, fn);
+    return () => t.remove(false);
+  });
   private lastRotation: Rotation = 0;
   private readonly art: ObjectArt = codeObjectArt;
 
@@ -78,7 +82,7 @@ export class DioramaScene extends Phaser.Scene {
     this.unsubscribe = null;
     this.ctrl = ctrl;
     this.opts = opts;
-    this.turning = false;
+    this.celebration.cancel();
     this.layer.removeAll(true);
     if (!ctrl) return;
     this.lastRotation = ctrl.view.rotation;
@@ -101,10 +105,9 @@ export class DioramaScene extends Phaser.Scene {
   }
 
   private celebrate(): void {
+    if (!this.ctrl) return;
     this.cameras.main.flash(700, 255, 248, 225);
-    this.turning = true;
-    for (let i = 1; i <= 4; i++) this.time.delayedCall(450 * i, () => this.ctrl?.rotate(1));
-    this.time.delayedCall(450 * 4 + 50, () => (this.turning = false));
+    this.celebration.start(this.ctrl, 450);
   }
 
   fit(): void {
@@ -146,7 +149,7 @@ export class DioramaScene extends Phaser.Scene {
   }
 
   private onUp(p: Phaser.Input.Pointer): void {
-    if (!this.ctrl || !this.opts.interactive || this.turning) return;
+    if (!this.ctrl || !this.opts.interactive || this.celebration.running) return;
     if (this.pinch) {
       if (!this.input.pointer1.isDown && !this.input.pointer2.isDown) this.pinch = null;
       return;

@@ -118,3 +118,17 @@ describe('Hud', () => {
     expect(root.querySelector('.hud')).toBeNull();
   });
 });
+
+describe('Hud re-render stability', () => {
+  it('keeps the same DOM nodes when the markup is unchanged (e.g. a camera rotation), so taps and focus survive', () => {
+    const c = new PlayController(makeLevel({ width: 3, height: 1, ground: ['...'], target: 0.3, batches: [['tyre', 'tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    const keep = root.querySelector('[data-action="keep"]');
+    c.rotate(1);
+    hud.render(c.view, meta);
+    expect(root.querySelector('[data-action="keep"]')).toBe(keep);
+  });
+});
