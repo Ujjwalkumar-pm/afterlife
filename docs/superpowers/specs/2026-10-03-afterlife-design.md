@@ -25,7 +25,7 @@ The main inspiration is *Cloud Gardens* (Noio, 2021); see `docs/research/cloud-g
 | View | Isometric 2.5D on a tile grid, with the camera rotating in 90° steps |
 | Roles | Claude writes all code; Ujjwal directs and decides design and feel |
 | Stack | Phaser + TypeScript + Vite, tests with Vitest, hosted on Vercel |
-| Art | Hybrid: Kenney.nl CC0 isometric tiles and props, recoloured to the Afterlife palette, plus code-drawn plants and effects |
+| Art | v1 (Plan 2): everything drawn in code — low-poly ground, ruins, scrap and plants in the Afterlife palette. Polish (Plan 3): ruins and scrap upgraded to sprites rendered from Kenney.nl CC0 3D models where a match exists |
 | Audio | Generative ambient music (Tone.js) plus CC0 sound effects |
 | Scope | 5 levels, title screen, level select, landing page |
 | Repo | Public GitHub |
@@ -148,7 +148,7 @@ Each level is a **data file** (`src/levels/NN-name.json`) containing the grid si
 ## 6. Art and audio direction
 
 - **Palette:** dusty greys, rust and faded concrete at the start, with greens and soft flower colours as the scene recovers. Light is warm and slightly hazy.
-- **Ruins and scrap:** Kenney CC0 isometric sprites, recoloured at build time or with Phaser tinting to fit the palette. Specific packs are chosen during setup, and their licence files are kept in `assets/LICENSES/`.
+- **Ruins and scrap:** in v1, drawn in code as simple low-poly forms (boxes, cylinders, cones) in the palette, behind an `ObjectArt` interface. In Plan 3, objects with a Kenney CC0 3D match (Car Kit, City Kit Roads/Industrial, Survival Kit, Furniture Kit) are rendered into 4-facing sprites and swapped in; the rest stay code-drawn. Licence files go in `assets/LICENSES/`.
 - **Plants:** drawn in code with Phaser Graphics and cached as textures: stems, leaves, petals and moss clumps, with small seeded variation so no two gardens look the same. Growth steps animate with a short tween.
 - **Audio:** an ambient bed generated with Tone.js (soft pads and wind) that gets fuller as coverage rises, plus CC0 sound effects for placing, harvesting and completing a level. Sound starts after the first click or tap. The mute and volume settings are saved.
 - **Reduced motion:** when the system setting `prefers-reduced-motion` is on, or the in-game setting is enabled, camera turns and large tweens are replaced by fades.
@@ -164,7 +164,7 @@ Each level is a **data file** (`src/levels/NN-name.json`) containing the grid si
 | **Iso renderer** | `src/render/iso/` | Converts grid coordinates to the screen and back for 4 rotations; draws ground, objects and depth order | Phaser, Engine state (read-only) |
 | **Plant renderer** | `src/render/plants/` | Draws and animates plant cells from Engine state | Phaser, Engine state |
 | **Scenes** | `src/scenes/` | Boot (loading), Title, LevelSelect, Play; Play connects input → Engine → renderers | All of the above |
-| **UI** | `src/ui/` | Tray, meter, buttons, overlays | Phaser |
+| **UI** | `src/ui/`, `src/app/` | Tray, meter, buttons, overlays and the title/select/settings screens, built as an HTML/CSS layer over the canvas (crisp text, responsive, testable) | none (DOM) |
 | **Audio** | `src/audio/` | Ambient music and sound effects | Tone.js |
 | **Save** | `src/save/` | Reads and writes progress and settings in localStorage under the key `afterlife.save.v1`. Every access is wrapped in try/catch, and the game still works if storage is unavailable | none |
 | **Landing** | `landing/` | Static landing page: hero animation, pitch, screenshots, Play button | none (plain HTML/CSS/TS) |
@@ -215,3 +215,4 @@ Afterlife/
 ## 11. Change log
 
 - **3 Oct 2026 — growth rule revised (approved by Ujjwal).** In the first version, moss and vines spread one tile per growth tick. The level solver showed that rule caps every level at about 17–25% coverage, because scrap fills the scene faster than plants can cover it. Grown moss now spreads into every eligible neighbour, and vines climb onto every neighbouring object (or creep one tile on bare ground). Each level also gets about twice as many seeds and scrap.
+- **3 Oct 2026 — art source and UI layer (approved by Ujjwal).** Kenney's isometric packs cover only about half the objects, in mixed styles, so v1 draws every object in code and Plan 3 upgrades matched objects to rendered Kenney 3D sprites. The interface is an HTML/CSS layer over the Phaser canvas.
