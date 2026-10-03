@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { cellStatus, type GameEvent, type Pos } from '../../engine';
 import type { PlayController, View } from '../../game/controller';
 import { depth, sceneBounds, toGrid, toScreen, type IsoView, type Rotation } from '../iso/projection';
-import { codeObjectArt, drawBlock, type ObjectArt } from '../objects/objectArt';
+import { drawBlock, type ObjectArt } from '../objects/objectArt';
+import manifest from '../objects/sprites.json';
+import { makeSpriteObjectArt, spriteAssets, type SpriteManifest } from '../objects/spriteArt';
 import { Celebration } from './celebration';
 import { darken, lerpColor, PALETTE } from '../palette';
 import { drawPrims } from '../plants/plantArt';
@@ -51,10 +53,15 @@ export class DioramaScene extends Phaser.Scene {
   private pressedOnCanvas = false;
   private baseZoom = 1;
   private userZoom = 1;
-  private readonly art: ObjectArt = codeObjectArt;
+  private readonly art: ObjectArt = makeSpriteObjectArt(manifest as SpriteManifest, import.meta.env.BASE_URL);
 
   constructor() {
     super('diorama');
+  }
+
+  preload(): void {
+    for (const { key, url } of spriteAssets(manifest as SpriteManifest, import.meta.env.BASE_URL)) this.load.image(key, url);
+    this.load.on('loaderror', (file: { key: string }) => console.warn('[Afterlife] sprite failed to load, using drawn shape:', file.key));
   }
 
   create(): void {

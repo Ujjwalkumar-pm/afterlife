@@ -32,6 +32,7 @@ export const PALETTE = {
   white: 0xcfcac0,
   orange: 0xd9773a,
   sand: 0xd8c48f,
+  spriteTint: 0xe8e0d2,
 } as const;
 
 const channels = (c: number) => [(c >> 16) & 255, (c >> 8) & 255, c & 255] as const;
