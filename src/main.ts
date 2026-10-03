@@ -18,7 +18,7 @@ const game = new Phaser.Game({
 });
 
 const sound = new ToneSound();
-const app = new App(document.getElementById('ui')!, { show: (ctrl, opts) => scene.attach(ctrl, opts), highlight: (tile) => scene.setHighlight(tile) }, safeStorage(), LEVELS, {
+const app = new App(document.getElementById('ui')!, { show: (ctrl, opts) => scene.attach(ctrl, opts), highlight: (tile) => scene.setHighlight(tile), setInput: (on) => scene.setInput(on) }, safeStorage(), LEVELS, {
   demoIntervalMs: 900,
   prefersReducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 }, sound);

@@ -89,6 +89,8 @@ export class DioramaScene extends Phaser.Scene {
   private prevState: GameState | null = null;
   private progressDrawn = -1;
   private highlight: Pos | null = null;
+  private highlightPulse: Phaser.Tweens.Tween | null = null;
+  private inputEnabled = true;
 
   constructor() {
     super('diorama');
@@ -109,16 +111,15 @@ export class DioramaScene extends Phaser.Scene {
     this.fxLayer = this.add.container(0, 0).setDepth(30);
     this.labels = this.add.container(0, 0).setDepth(40);
     this.effects = new Effects(this, this.fxLayer);
-    this.tweens.add({ targets: this.highlightG, alpha: { from: 0.35, to: 1 }, duration: 700, yoyo: true, repeat: -1 });
     this.input.mouse?.disableContextMenu();
     this.input.addPointer(1);
     this.input.on('pointerdown', () => this.gate.down());
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.onUp(p));
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? 0.9 : 1.1));
-    this.input.keyboard?.on('keydown-Q', () => this.opts.interactive && this.ctrl?.rotate(-1));
-    this.input.keyboard?.on('keydown-E', () => this.opts.interactive && this.ctrl?.rotate(1));
-    this.input.keyboard?.on('keydown-ESC', () => this.ctrl?.select(null));
+    this.input.keyboard?.on('keydown-Q', () => this.inputEnabled && this.opts.interactive && this.ctrl?.rotate(-1));
+    this.input.keyboard?.on('keydown-E', () => this.inputEnabled && this.opts.interactive && this.ctrl?.rotate(1));
+    this.input.keyboard?.on('keydown-ESC', () => this.inputEnabled && this.ctrl?.select(null));
     this.scale.on('resize', () => this.fit());
     this.ready = true;
     if (this.pending) {
@@ -139,6 +140,11 @@ export class DioramaScene extends Phaser.Scene {
     this.opts = opts;
     this.userZoom = 1;
     this.highlight = null;
+    this.inputEnabled = true;
+    this.highlightPulse?.remove();
+    this.highlightPulse = null;
+    this.highlightG.setAlpha(1);
+    if (!opts.reducedMotion) this.highlightPulse = this.tweens.add({ targets: this.highlightG, alpha: { from: 0.35, to: 1 }, duration: 700, yoyo: true, repeat: -1 });
     this.celebration.cancel();
     this.pendingTurn?.remove(false);
     this.pendingTurn = null;
@@ -151,6 +157,11 @@ export class DioramaScene extends Phaser.Scene {
     this.unsubscribe = ctrl.onChange((view, events) => this.onChange(view, events));
     this.build(ctrl.view);
     this.fit();
+  }
+
+  setInput(on: boolean): void {
+    this.inputEnabled = on;
+    if (!on) this.ctrl?.hover(null);
   }
 
   setHighlight(tile: Pos | null): void {
@@ -174,24 +185,27 @@ export class DioramaScene extends Phaser.Scene {
     return { x: b.centerX - b.width / 2, y: b.centerY - b.height / 2, w: b.width, h: b.height };
   }
 
-  private clearBoard(): void {
-    this.tweens.killTweensOf([...this.world.list, ...this.fxLayer.list]);
+  private clearBoard(keepFx = false): void {
+    this.tweens.killTweensOf(keepFx ? [...this.world.list] : [...this.world.list, ...this.fxLayer.list]);
     this.groundLayer.removeAll(true);
     this.world.removeAll(true);
-    this.fxLayer.removeAll(true);
+    if (!keepFx) this.fxLayer.removeAll(true);
     this.labels.removeAll(true);
     this.preview.clear();
     this.highlightG.clear();
     this.island.clear();
-    this.ambient?.destroy();
-    this.ambient = null;
+    if (!keepFx) {
+      this.ambient?.destroy();
+      this.ambient = null;
+    }
     this.views = [];
     this.prevState = null;
     this.progressDrawn = -1;
   }
 
-  private build(view: View): void {
-    this.clearBoard();
+  /** keepFx: a rotation-only rebuild keeps ambient motes and celebration particles alive. */
+  private build(view: View, keepFx = false): void {
+    this.clearBoard(keepFx);
     const v = this.isoOf(view);
     const s = view.state;
     drawIsland(this.island, v);
@@ -215,7 +229,7 @@ export class DioramaScene extends Phaser.Scene {
     this.drawGrounds(view);
     this.world.sort('depth');
     this.prevState = s;
-    if (!this.opts.reducedMotion) {
+    if (!this.opts.reducedMotion && !this.ambient) {
       this.ambient = new Ambient(this, this.area(view), this.fxLayer);
       this.ambient.setProgress(view.progress);
     }
@@ -288,8 +302,9 @@ export class DioramaScene extends Phaser.Scene {
 
   private onChange(view: View, events: GameEvent[]): void {
     if (!this.prevState || view.rotation !== this.lastRotation || view.state.width !== this.prevState.width || view.state.height !== this.prevState.height) {
+      const rotationOnly = !!this.prevState && view.state.width === this.prevState.width && view.state.height === this.prevState.height;
       this.lastRotation = view.rotation;
-      this.build(view);
+      this.build(view, rotationOnly);
       this.fit();
     } else if (view.state !== this.prevState) {
       this.applyChanges(view, events);
@@ -339,12 +354,10 @@ export class DioramaScene extends Phaser.Scene {
           }
           break;
         case 'grew':
-          plant.scaleY = 0.2 * BASE;
-          this.tweens.add({ targets: plant, scaleY: BASE, delay, duration: 500, ease: 'Back.Out' });
+          this.tweens.add({ targets: plant, scaleY: { from: 0.2 * BASE, to: BASE }, delay, duration: 500, ease: 'Back.Out' });
           break;
         case 'bloomed':
-          plant.setScale(0.6 * BASE);
-          this.tweens.add({ targets: plant, scale: BASE, delay, duration: 600, ease: 'Back.Out' });
+          this.tweens.add({ targets: plant, scale: { from: 0.6 * BASE, to: BASE }, delay, duration: 600, ease: 'Back.Out' });
           break;
         case 'unbloomed':
           if (harvest && harvest.type === 'harvested') this.flyHarvest(c, harvest.seed);
@@ -460,7 +473,7 @@ export class DioramaScene extends Phaser.Scene {
   }
 
   private onMove(p: Phaser.Input.Pointer): void {
-    if (!this.ctrl || !this.opts.interactive) return;
+    if (!this.ctrl || !this.opts.interactive || !this.inputEnabled) return;
     if (this.handlePinch()) return;
     if (!p.wasTouch) this.ctrl.hover(this.pick(p));
   }
@@ -469,7 +482,7 @@ export class DioramaScene extends Phaser.Scene {
     const anyDown = this.input.pointer1.isDown || this.input.pointer2.isDown;
     const isTap = this.gate.up(anyDown);
     if (!anyDown) this.pinch = null;
-    if (!isTap || !this.ctrl || !this.opts.interactive || this.celebration.running) return;
+    if (!isTap || !this.ctrl || !this.opts.interactive || !this.inputEnabled || this.celebration.running) return;
     if (p.rightButtonReleased()) {
       this.ctrl.select(null);
       return;

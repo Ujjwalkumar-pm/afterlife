@@ -34,6 +34,7 @@ export class ToneSound implements Sound {
   private ambientOn = false;
   private playing = false;
   private failed = false;
+  private lastStart = 0;
   private listeners: (() => void)[] = [];
 
   get contextState(): string {
@@ -109,7 +110,11 @@ export class ToneSound implements Sound {
     const T = this.tone;
     const n = this.nodes;
     if (!T || !n || this.muted) return;
-    const now = T.now();
+    // Tone throws if a monophonic synth is retriggered at the same instant (fast moves),
+    // so every cue starts strictly after the previous one.
+    const now = Math.max(T.now(), this.lastStart + 0.03);
+    if (now - T.now() > 1.5) return; // a burst of moves: drop cues rather than queue sound far ahead
+    this.lastStart = now + 0.5;
     let grow = 0;
     for (const cue of cues) {
       switch (cue) {

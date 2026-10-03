@@ -261,3 +261,34 @@ describe('App teaching', () => {
     expect(document.documentElement.classList.contains('reduce-motion')).toBe(false);
   });
 });
+
+describe('App resilience', () => {
+  it('keeps playing when the sound engine throws on a cue', () => {
+    const { sound } = fakeSound();
+    const broken: Sound = { ...sound, play: () => { throw new Error('Start time must be strictly greater'); } };
+    const app = new App(root, stage, memoryStore(), LEVELS, opts, broken);
+    app.startLevel(1);
+    expect(() => { for (const m of LEVELS[1]!.solution) app.controller!.play(m); }).not.toThrow();
+    expect(app.controller!.view.overlay).toBe('restored');
+  });
+});
+
+describe('How to Play overlay is a proper dialog', () => {
+  it('is modal: pauses board input, closes on Esc and returns focus to the ? button', () => {
+    const setInput = vi.fn();
+    const saved = JSON.stringify({ version: 1, completed: [], tutorialDone: true, settings: {} });
+    const app = new App(root, { show: vi.fn(), setInput }, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="help"]');
+    const dialog = root.querySelector('.howto-overlay')!;
+    expect(dialog.getAttribute('role')).toBe('dialog');
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(setInput).toHaveBeenLastCalledWith(false);
+    expect((root.querySelector('.hud') as HTMLElement).inert).toBe(true);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(root.querySelector('.howto-overlay')).toBeNull();
+    expect(setInput).toHaveBeenLastCalledWith(true);
+    expect((root.querySelector('.hud') as HTMLElement).inert).toBe(false);
+    expect(document.activeElement).toBe(root.querySelector('[data-action="help"]'));
+  });
+});

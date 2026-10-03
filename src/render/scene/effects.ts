@@ -10,6 +10,9 @@ const diamond = (x: number, y: number) => v2([{ x, y: y - HH }, { x: x + HW, y }
 
 /** One-shot feedback effects. Callers skip them entirely under Reduce motion. */
 export class Effects {
+  /** Resting x of shaken targets, so overlapping shakes always settle back home. */
+  private readonly home = new WeakMap<object, number>();
+
   constructor(private readonly scene: Phaser.Scene, private readonly layer: Phaser.GameObjects.Container) {}
 
   burst(x: number, y: number, color: number, count: number, speed = 40): void {
@@ -57,7 +60,10 @@ export class Effects {
   }
 
   shake(target: Movable): void {
-    const x = target.x;
+    if (!this.home.has(target)) this.home.set(target, target.x);
+    const x = this.home.get(target)!;
+    this.scene.tweens.killTweensOf(target);
+    target.x = x;
     this.scene.tweens.add({ targets: target, x: x + 4, duration: 50, yoyo: true, repeat: 1, onComplete: () => (target.x = x) });
   }
 

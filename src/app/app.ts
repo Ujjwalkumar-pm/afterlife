@@ -12,6 +12,8 @@ import { levelStatuses, type LevelStatus } from './progress';
 export interface Stage {
   show(ctrl: PlayController | null, opts: AttachOptions): void;
   highlight?(tile: Pos | null): void;
+  /** Pause/resume board input (pointer and keys), e.g. while a dialog is open. */
+  setInput?(on: boolean): void;
 }
 export interface AppOptions {
   /** Milliseconds between title-screen demo moves; null disables the demo (tests). */
@@ -35,6 +37,9 @@ export class App {
   private tutorial: Tutorial | null = null;
   private tutorialTimer: ReturnType<typeof setTimeout> | null = null;
   private howto: HTMLElement | null = null;
+  private readonly onHowtoKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') this.closeHowTo();
+  };
 
   constructor(
     private readonly root: HTMLElement,
@@ -113,8 +118,12 @@ export class App {
       if (view.overlay !== lastOverlay && view.overlay === 'restored') cues.push('won');
       if (view.overlay !== lastOverlay && view.overlay === 'rests') cues.push('rests');
       lastOverlay = view.overlay;
-      this.sound.play(cues);
-      this.sound.setProgress(view.progress);
+      try {
+        this.sound.play(cues);
+        this.sound.setProgress(view.progress);
+      } catch (err) {
+        console.warn('[Afterlife] sound cue failed', err);
+      }
       if (this.tutorial) {
         this.tutorial.update(view, events);
         if (this.tutorial.done) this.finishTutorial();
@@ -155,8 +164,7 @@ export class App {
     if (this.tutorialTimer) clearTimeout(this.tutorialTimer);
     this.tutorialTimer = null;
     this.tutorial = null;
-    this.howto?.remove();
-    this.howto = null;
+    if (this.howto) this.closeHowTo(false);
     this.stage.highlight?.(null);
     this.controller = null;
   }
@@ -215,15 +223,26 @@ export class App {
     if (this.howto) return;
     const el = document.createElement('div');
     el.className = 'howto-overlay';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-label', 'How to play');
     el.innerHTML = this.howtoHtml(true);
     this.root.appendChild(el);
     this.howto = el;
+    if (this.hud) this.hud.el.inert = true;
+    this.stage.setInput?.(false);
+    document.addEventListener('keydown', this.onHowtoKey);
     el.querySelector<HTMLElement>('[data-close-howto]')?.focus();
   }
 
-  private closeHowTo(): void {
-    this.howto?.remove();
+  private closeHowTo(restoreFocus = true): void {
+    if (!this.howto) return;
+    this.howto.remove();
     this.howto = null;
+    document.removeEventListener('keydown', this.onHowtoKey);
+    if (this.hud) this.hud.el.inert = false;
+    this.stage.setInput?.(true);
+    if (restoreFocus) this.hud?.el.querySelector<HTMLElement>('[data-action="help"]')?.focus();
   }
 
   private howtoHtml(inLevel: boolean): string {
