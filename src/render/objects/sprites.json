@@ -1,0 +1,57 @@
+{
+  "tyre": {
+    "originY": 0.75,
+    "topHeight": 20,
+    "scale": 0.5
+  },
+  "car": {
+    "originY": 0.75,
+    "topHeight": 19,
+    "scale": 0.5
+  },
+  "old-car": {
+    "originY": 0.75,
+    "topHeight": 18,
+    "scale": 0.5
+  },
+  "cone": {
+    "originY": 0.75,
+    "topHeight": 20,
+    "scale": 0.5
+  },
+  "sign": {
+    "originY": 0.75,
+    "topHeight": 35,
+    "scale": 0.5
+  },
+  "station-sign": {
+    "originY": 0.75,
+    "topHeight": 25,
+    "scale": 0.5
+  },
+  "water-tank": {
+    "originY": 0.75,
+    "topHeight": 16,
+    "scale": 0.5
+  },
+  "crate": {
+    "originY": 0.75,
+    "topHeight": 22,
+    "scale": 0.5
+  },
+  "barrel": {
+    "originY": 0.75,
+    "topHeight": 26,
+    "scale": 0.5
+  },
+  "bench": {
+    "originY": 0.75,
+    "topHeight": 24,
+    "scale": 0.5
+  },
+  "bin": {
+    "originY": 0.75,
+    "topHeight": 29,
+    "scale": 0.5
+  }
+}
