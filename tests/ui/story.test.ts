@@ -25,6 +25,10 @@ describe('story beats', () => {
     expect(storyLength()).toBe(25000);
     expect(storyLength()).toBeLessThan(30000);
   });
+  it('animated parts carry no transform attribute (CSS animation would replace it and move them)', () => {
+    const svg = storySvg();
+    for (const cls of ['story-sprout', 'story-seed']) expect(svg).not.toMatch(new RegExp(`class="${cls}"[^>]*transform=|transform="[^"]*"[^>]*class="${cls}"`));
+  });
   it('draws the scene with Pip in it', () => {
     const svg = storySvg();
     expect(svg).toContain('class="story-scene"');

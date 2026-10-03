@@ -31,7 +31,7 @@ export function storySvg(): string {
 <g class="story-moss" fill="#6f8f3a"><ellipse cx="60" cy="200" rx="30" ry="5"/><ellipse cx="250" cy="201" rx="40" ry="6"/><ellipse cx="320" cy="199" rx="22" ry="4"/></g>
 <g class="story-junk"><rect x="110" y="178" width="22" height="20" fill="#8c6a48"/><rect x="108" y="175" width="26" height="4" fill="#6b4f35"/><ellipse cx="226" cy="194" rx="14" ry="5" fill="#2e2c2a"/><ellipse cx="226" cy="189" rx="14" ry="5" fill="#2e2c2a"/><ellipse cx="226" cy="189" rx="6" ry="2" fill="#1b1a19"/></g>
 <g class="story-pip" transform="translate(148 138)">${PIP_INNER}</g>
-<g class="story-sprout" transform="translate(196 174)"><path d="M0 22 C0 14 1 8 0 0" stroke="#4a6b2a" stroke-width="2.5" fill="none"/><path d="M0 8 C-8 2 -12 6 -12 10 C-6 12 -2 10 0 8Z" fill="#4f8a3c"/><path d="M0 4 C8 -2 12 2 12 6 C6 8 2 6 0 4Z" fill="#58934a"/></g>
+<g transform="translate(196 174)"><g class="story-sprout"><path d="M0 22 C0 14 1 8 0 0" stroke="#4a6b2a" stroke-width="2.5" fill="none"/><path d="M0 8 C-8 2 -12 6 -12 10 C-6 12 -2 10 0 8Z" fill="#4f8a3c"/><path d="M0 4 C8 -2 12 2 12 6 C6 8 2 6 0 4Z" fill="#58934a"/></g></g>
 <circle class="story-seed" cx="196" cy="194" r="4" fill="#f3e6a0"/>
 <text class="story-title" x="180" y="48" text-anchor="middle" font-size="34" font-weight="800" fill="#f1ede2">Afterlife</text>
 </svg>`;
