@@ -95,8 +95,11 @@ import type { Sound } from '../../src/audio/sound';
 import type { Cue } from '../../src/audio/cues';
 
 const fakeSound = () => {
-  const calls = { unlock: 0, muted: [] as boolean[], volume: [] as number[], ambient: [] as boolean[], progress: [] as number[], cues: [] as Cue[] };
+  const calls = { unlock: 0, muted: [] as boolean[], volume: [] as number[], ambient: [] as boolean[], progress: [] as number[], cues: [] as Cue[], listeners: [] as (() => void)[] };
   const sound: Sound = {
+    ready: false,
+    available: true,
+    onChange: (l) => void calls.listeners.push(l),
     unlock: () => void calls.unlock++,
     setMuted: (m) => void calls.muted.push(m),
     setVolume: (v) => void calls.volume.push(v),
@@ -117,12 +120,25 @@ describe('App sound', () => {
     expect(calls.ambient.at(-1)).toBe(true);
   });
 
-  it('unlocks audio on the first click only', () => {
+  it('keeps calling unlock on gestures until audio is ready', () => {
     const { sound, calls } = fakeSound();
     new App(root, stage, memoryStore(), LEVELS, opts, sound);
     click('[data-nav="select"]');
     click('[data-nav="title"]');
-    expect(calls.unlock).toBe(1);
+    expect(calls.unlock).toBe(2);
+    (sound as { ready: boolean }).ready = true;
+    click('[data-nav="select"]');
+    expect(calls.unlock).toBe(2);
+  });
+
+  it('shows sound as off in the HUD when audio is unavailable', () => {
+    const { sound, calls } = fakeSound();
+    const app = new App(root, stage, memoryStore(), LEVELS, opts, sound);
+    app.startLevel(0);
+    expect(root.querySelector('[data-action="mute"]')!.getAttribute('aria-pressed')).toBe('false');
+    (sound as { available: boolean }).available = false;
+    calls.listeners.forEach((l) => l());
+    expect(root.querySelector('[data-action="mute"]')!.getAttribute('aria-pressed')).toBe('true');
   });
 
   it('keeps working when sound unlock throws', () => {

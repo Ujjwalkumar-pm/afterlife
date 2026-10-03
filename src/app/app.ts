@@ -42,9 +42,9 @@ export class App {
     this.sound.setMuted(this.save.settings.muted);
     this.sound.setVolume(this.save.settings.volume);
     this.sound.setAmbient(true);
+    // Keep trying on every gesture until audio actually runs (iOS may refuse the first resume).
     const unlock = () => {
-      root.removeEventListener('pointerdown', unlock, true);
-      root.removeEventListener('click', unlock, true);
+      if (this.sound.ready) return;
       try {
         this.sound.unlock();
       } catch (err) {
@@ -53,6 +53,7 @@ export class App {
     };
     root.addEventListener('pointerdown', unlock, true);
     root.addEventListener('click', unlock, true);
+    this.sound.onChange(() => this.renderHud?.());
     root.addEventListener('click', (e) => this.onClick(e));
     root.addEventListener('change', (e) => this.onInput(e));
     this.show('title');
@@ -91,7 +92,7 @@ export class App {
       toggleMute: () => this.toggleMute(),
     });
     this.hud = hud;
-    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted });
+    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available });
     let lastOverlay = ctrl.view.overlay;
     this.unsubscribe = ctrl.onChange((view, events) => {
       if (events.some((e) => e.type === 'won')) {

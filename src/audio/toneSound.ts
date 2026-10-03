@@ -33,24 +33,55 @@ export class ToneSound implements Sound {
   private progress = 0;
   private ambientOn = false;
   private playing = false;
+  private failed = false;
+  private listeners: (() => void)[] = [];
 
   get contextState(): string {
     return this.tone ? this.tone.getContext().state : 'locked';
   }
 
+  get ready(): boolean {
+    return this.contextState === 'running';
+  }
+
+  get available(): boolean {
+    return !this.failed;
+  }
+
+  onChange(listener: () => void): void {
+    this.listeners.push(listener);
+  }
+
+  /** Safe to call on every gesture: loads Tone once, retries after a failure, resumes a suspended context. */
   unlock(): void {
+    const T = this.tone;
+    if (T) {
+      if (T.getContext().state !== 'running') T.start().then(() => this.notify(), () => undefined);
+      return;
+    }
     if (this.loading) return;
     this.loading = true;
     import('tone')
       .then(async (Tone) => {
-        await Tone.start();
         this.tone = Tone;
         this.nodes = this.build(Tone);
+        this.failed = false;
         this.applyVolume();
         this.applyProgress();
         this.applyAmbient();
+        await Tone.start();
+        this.notify();
       })
-      .catch((err: unknown) => console.warn('[Afterlife] audio unavailable', err));
+      .catch((err: unknown) => {
+        this.loading = false;
+        this.failed = true;
+        console.warn('[Afterlife] audio unavailable', err);
+        this.notify();
+      });
+  }
+
+  private notify(): void {
+    for (const l of this.listeners) l();
   }
 
   setMuted(muted: boolean): void {

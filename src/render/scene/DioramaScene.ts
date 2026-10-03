@@ -6,6 +6,7 @@ import { drawBlock, type ObjectArt } from '../objects/objectArt';
 import manifest from '../objects/sprites.json';
 import { makeSpriteObjectArt, spriteAssets, type SpriteManifest } from '../objects/spriteArt';
 import { Celebration } from './celebration';
+import { TapGate } from './tapGate';
 import { darken, lerpColor, PALETTE } from '../palette';
 import { drawPrims } from '../plants/plantArt';
 import { plantPrims } from '../plants/plantShapes';
@@ -50,7 +51,7 @@ export class DioramaScene extends Phaser.Scene {
     return () => t.remove(false);
   });
   private lastRotation: Rotation = 0;
-  private pressedOnCanvas = false;
+  private readonly gate = new TapGate();
   private baseZoom = 1;
   private userZoom = 1;
   private readonly art: ObjectArt = makeSpriteObjectArt(manifest as SpriteManifest, import.meta.env.BASE_URL);
@@ -68,7 +69,7 @@ export class DioramaScene extends Phaser.Scene {
     this.layer = this.add.container(0, 0);
     this.input.mouse?.disableContextMenu();
     this.input.addPointer(1);
-    this.input.on('pointerdown', () => (this.pressedOnCanvas = true));
+    this.input.on('pointerdown', () => this.gate.down());
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.onUp(p));
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? 0.9 : 1.1));
@@ -149,6 +150,7 @@ export class DioramaScene extends Phaser.Scene {
     const a = this.input.pointer1;
     const b = this.input.pointer2;
     if (a.isDown && b.isDown) {
+      this.gate.pinch();
       const d = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
       if (!this.pinch) this.pinch = { dist: d, zoom: this.cameras.main.zoom };
       else {
@@ -167,13 +169,11 @@ export class DioramaScene extends Phaser.Scene {
   }
 
   private onUp(p: Phaser.Input.Pointer): void {
-    if (!this.ctrl || !this.opts.interactive || this.celebration.running) return;
-    if (!this.pressedOnCanvas) return; // press started on the HTML layer (e.g. dragged off a tray button)
-    this.pressedOnCanvas = false;
-    if (this.pinch) {
-      if (!this.input.pointer1.isDown && !this.input.pointer2.isDown) this.pinch = null;
-      return;
-    }
+    // Always update the gate first, so an early return can never leave a pinch half-finished.
+    const anyDown = this.input.pointer1.isDown || this.input.pointer2.isDown;
+    const isTap = this.gate.up(anyDown);
+    if (!anyDown) this.pinch = null;
+    if (!isTap || !this.ctrl || !this.opts.interactive || this.celebration.running) return;
     if (p.rightButtonReleased()) {
       this.ctrl.select(null);
       return;
