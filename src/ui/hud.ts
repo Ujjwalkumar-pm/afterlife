@@ -9,12 +9,14 @@ export interface HudHandlers {
   menu(): void;
   next(): void;
   keepDecorating(): void;
+  toggleMute(): void;
 }
 
 export interface HudMeta {
   name: string;
   hint: string;
   hasNext: boolean;
+  muted: boolean;
 }
 
 const SWATCH: Record<PlantType, string> = { moss: '#89a94a', vine: '#58934a', flower: '#e89ab0', bamboo: '#9fb85a' };
@@ -84,6 +86,8 @@ export class Hud {
         return h.next();
       case 'keep':
         return h.keepDecorating();
+      case 'mute':
+        return h.toggleMute();
     }
   }
 
@@ -117,6 +121,7 @@ export class Hud {
   <button data-action="restart" aria-label="Restart level">⟲</button>
   <button data-action="rotate-left" aria-label="Rotate left">◀</button>
   <button data-action="rotate-right" aria-label="Rotate right">▶</button>
+  <button data-action="mute" aria-label="Sound" aria-pressed="${m.muted}">${m.muted ? '🔇' : '🔊'}</button>
 </div>
 <footer class="tray">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
 ${this.overlay(v, m)}`;

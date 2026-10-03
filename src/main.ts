@@ -6,6 +6,7 @@ import { App } from './app/app';
 import { LEVELS } from './levels';
 import { DioramaScene } from './render/scene/DioramaScene';
 import { safeStorage } from './save/save';
+import { ToneSound } from './audio/toneSound';
 
 const scene = new DioramaScene();
 const game = new Phaser.Game({
@@ -16,10 +17,11 @@ const game = new Phaser.Game({
   scene: [scene],
 });
 
+const sound = new ToneSound();
 const app = new App(document.getElementById('ui')!, { show: (ctrl, opts) => scene.attach(ctrl, opts) }, safeStorage(), LEVELS, {
   demoIntervalMs: 900,
   prefersReducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-});
+}, sound);
 
 const onError = (err: unknown) => {
   console.error('[Afterlife]', err);
@@ -28,4 +30,4 @@ const onError = (err: unknown) => {
 window.addEventListener('error', (e) => onError(e.error ?? e.message));
 window.addEventListener('unhandledrejection', (e) => onError(e.reason));
 
-if (import.meta.env.DEV) Object.assign(window as object, { afterlife: app, afterlifeGame: game });
+if (import.meta.env.DEV) Object.assign(window as object, { afterlife: app, afterlifeGame: game, afterlifeSound: sound });

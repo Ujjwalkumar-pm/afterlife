@@ -90,3 +90,86 @@ describe('App', () => {
     expect(app.controller!.view.canUndo).toBe(false);
   });
 });
+
+import type { Sound } from '../../src/audio/sound';
+import type { Cue } from '../../src/audio/cues';
+
+const fakeSound = () => {
+  const calls = { unlock: 0, muted: [] as boolean[], volume: [] as number[], ambient: [] as boolean[], progress: [] as number[], cues: [] as Cue[] };
+  const sound: Sound = {
+    unlock: () => void calls.unlock++,
+    setMuted: (m) => void calls.muted.push(m),
+    setVolume: (v) => void calls.volume.push(v),
+    setAmbient: (on) => void calls.ambient.push(on),
+    setProgress: (p) => void calls.progress.push(p),
+    play: (c) => void calls.cues.push(...c),
+  };
+  return { sound, calls };
+};
+
+describe('App sound', () => {
+  it('applies saved mute and volume at start and turns the ambient on', () => {
+    const saved = JSON.stringify({ version: 1, completed: [], settings: { reducedMotion: false, muted: true, volume: 0.3 } });
+    const { sound, calls } = fakeSound();
+    new App(root, stage, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts, sound);
+    expect(calls.muted.at(-1)).toBe(true);
+    expect(calls.volume.at(-1)).toBe(0.3);
+    expect(calls.ambient.at(-1)).toBe(true);
+  });
+
+  it('unlocks audio on the first click only', () => {
+    const { sound, calls } = fakeSound();
+    new App(root, stage, memoryStore(), LEVELS, opts, sound);
+    click('[data-nav="select"]');
+    click('[data-nav="title"]');
+    expect(calls.unlock).toBe(1);
+  });
+
+  it('keeps working when sound unlock throws', () => {
+    const broken: Sound = { ...fakeSound().sound, unlock: () => { throw new Error('no audio'); } };
+    const app = new App(root, stage, memoryStore(), LEVELS, opts, broken);
+    click('[data-nav="select"]');
+    expect(app.screen).toBe('select');
+  });
+
+  it('plays move cues, a won cue on the win, and follows progress', () => {
+    const { sound, calls } = fakeSound();
+    const app = new App(root, stage, memoryStore(), LEVELS, opts, sound);
+    app.startLevel(0);
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    expect(calls.cues).toContain('seed');
+    expect(calls.cues).toContain('scrap');
+    expect(calls.cues.filter((c) => c === 'won')).toHaveLength(1);
+    expect(calls.progress.at(-1)).toBe(1);
+  });
+
+  it('persists sound settings from the settings screen and the HUD mute button', () => {
+    const store = memoryStore();
+    const { sound, calls } = fakeSound();
+    new App(root, stage, store, LEVELS, opts, sound);
+    click('[data-nav="settings"]');
+    const toggle = root.querySelector('[data-setting="sound"]') as HTMLInputElement;
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    const vol = root.querySelector('[data-setting="volume"]') as HTMLInputElement;
+    vol.value = '40';
+    vol.dispatchEvent(new Event('change', { bubbles: true }));
+    let saved = JSON.parse(store.data[SAVE_KEY]!).settings;
+    expect(saved).toMatchObject({ muted: true, volume: 0.4 });
+    expect(calls.muted.at(-1)).toBe(true);
+    expect(calls.volume.at(-1)).toBe(0.4);
+    click('[data-nav="title"]');
+    click('[data-nav="select"]');
+    click('[data-level="0"]');
+    click('[data-action="mute"]');
+    saved = JSON.parse(store.data[SAVE_KEY]!).settings;
+    expect(saved.muted).toBe(false);
+    expect(calls.muted.at(-1)).toBe(false);
+  });
+
+  it('credits Kenney', () => {
+    new App(root, stage, memoryStore(), LEVELS, opts);
+    click('[data-nav="credits"]');
+    expect(root.textContent).toContain('Kenney');
+  });
+});

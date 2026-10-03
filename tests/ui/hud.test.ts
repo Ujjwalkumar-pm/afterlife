@@ -5,9 +5,9 @@ import { Hud, type HudHandlers } from '../../src/ui/hud';
 import { makeLevel } from '../engine/helpers';
 
 const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
-  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(),
+  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(),
 });
-const meta = { name: 'Bus <Stop>', hint: 'Place scrap near a seed.', hasNext: true };
+const meta = { name: 'Bus <Stop>', hint: 'Place scrap near a seed.', hasNext: true, muted: false };
 const click = (el: Element | null) => (el as HTMLElement).click();
 
 let root: HTMLElement;
@@ -152,5 +152,20 @@ describe('Hud overlays: focus and escape routes', () => {
     hud.showError();
     click(root.querySelector('.overlay [data-action="menu"]'));
     expect(h.menu).toHaveBeenCalled();
+  });
+});
+
+describe('Hud mute button', () => {
+  it('shows the sound state and toggles it', () => {
+    const c = new PlayController(makeLevel());
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, meta);
+    const btn = root.querySelector('[data-action="mute"]')!;
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    click(btn);
+    expect(h.toggleMute).toHaveBeenCalled();
+    hud.render(c.view, { ...meta, muted: true });
+    expect(root.querySelector('[data-action="mute"]')!.getAttribute('aria-pressed')).toBe('true');
   });
 });
