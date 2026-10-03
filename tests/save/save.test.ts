@@ -34,6 +34,7 @@ describe('save', () => {
     expect(loadSave(memoryStore({ [SAVE_KEY]: raw }))).toEqual({
       version: 1,
       completed: ['bus-stop'],
+      tutorialDone: false,
       settings: { reducedMotion: false, muted: true, volume: 0.8 },
     });
   });
@@ -77,5 +78,18 @@ describe('probeStorage', () => {
   });
   it('returns null when nothing works', () => {
     expect(probeStorage(fake({ writes: false, reads: false }))).toBeNull();
+  });
+});
+
+describe('tutorialDone', () => {
+  it('defaults to false and round-trips', () => {
+    expect(defaultSave().tutorialDone).toBe(false);
+    const store = memoryStore();
+    writeSave(store, { ...defaultSave(), tutorialDone: true });
+    expect(loadSave(store).tutorialDone).toBe(true);
+  });
+  it('reads false from an old save without the field', () => {
+    const old = JSON.stringify({ version: 1, completed: ['bus-stop'], settings: { reducedMotion: false, muted: false, volume: 0.8 } });
+    expect(loadSave(memoryStore({ [SAVE_KEY]: old })).tutorialDone).toBe(false);
   });
 });

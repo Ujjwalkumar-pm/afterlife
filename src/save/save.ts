@@ -9,6 +9,7 @@ export interface Settings {
 export interface SaveData {
   version: 1;
   completed: string[];
+  tutorialDone: boolean;
   settings: Settings;
 }
 
@@ -17,6 +18,7 @@ export type Store = Pick<Storage, 'getItem' | 'setItem'>;
 export const defaultSave = (): SaveData => ({
   version: 1,
   completed: [],
+  tutorialDone: false,
   settings: { reducedMotion: false, muted: false, volume: 0.8 },
 });
 
@@ -31,6 +33,7 @@ export function loadSave(store: Store | null): SaveData {
     return {
       version: 1,
       completed: Array.isArray(d.completed) ? d.completed.filter((x): x is string => typeof x === 'string') : [],
+      tutorialDone: d.tutorialDone === true,
       settings: {
         reducedMotion: typeof s.reducedMotion === 'boolean' ? s.reducedMotion : base.settings.reducedMotion,
         muted: typeof s.muted === 'boolean' ? s.muted : base.settings.muted,
