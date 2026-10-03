@@ -1211,7 +1211,147 @@ git commit -m "docs(landing): eight quiet places"
 
 ---
 
-### Task 9: Verify in the browser, final review, ship
+### Task 9: Look and feel (spec §9)
+
+**Files:**
+- Modify: `src/ui/icons.ts`, `src/ui/hud.ts`, `src/app/app.ts`, `src/render/scene/sceneMath.ts`, `src/render/palette.ts`, `src/styles.css`
+- Test: `tests/ui/icons.test.ts`, `tests/ui/hud.test.ts`, `tests/render/sceneMath.test.ts`, `tests/app/app.test.ts`
+
+**Interfaces:**
+- Produces: `ICONS` entries `menu`, `undo`, `restart`, `rotate-left`, `rotate-right`, `sound-on`, `sound-off`, `lock` and `leaf`.
+- **HUD DOM:**
+  - `.hud-tools[role=toolbar]` with `.sep` dividers.
+  - `.meter-pct`.
+  - `.batches .n` (count text).
+  - Overlays wrap their content in `.panel`.
+
+- [ ] **Step 1: Write the failing tests.**
+  1. In `tests/ui/icons.test.ts`, extend the key list with `'menu', 'undo', 'restart', 'rotate-left', 'rotate-right', 'sound-on', 'sound-off', 'lock', 'leaf'`.
+  2. In `tests/ui/hud.test.ts`:
+     - Replace `expect(root.querySelectorAll('.batches i')).toHaveLength(2);` with:
+
+       ```ts
+       expect(root.querySelector('.batches .n')!.textContent).toBe('2');
+       expect(root.querySelector('.batches')!.getAttribute('aria-label')).toBe('2 batches left');
+       ```
+
+     - Add:
+
+       ```ts
+       describe('Hud look and feel', () => {
+         it('uses SVG icons only in the tools (no emoji or text glyphs) grouped in a toolbar', () => {
+           const hud = new Hud(root, handlers());
+           hud.render(new PlayController(makeLevel({})).view, meta);
+           const tools = root.querySelector('.hud-tools')!;
+           expect(tools.getAttribute('role')).toBe('toolbar');
+           expect(tools.querySelectorAll('.sep')).toHaveLength(3);
+           for (const b of root.querySelectorAll('.hud-tools button, [data-action="menu"]')) {
+             expect(b.querySelector('svg'), b.getAttribute('aria-label')!).not.toBeNull();
+             expect(b.textContent!.trim()).toBe('');
+           }
+         });
+         it('switches the sound icon with mute and shows the meter percentage', () => {
+           const hud = new Hud(root, handlers());
+           const v = new PlayController(makeLevel({})).view;
+           hud.render(v, { ...meta, muted: true });
+           expect(root.querySelector('[data-action="mute"]')!.innerHTML).toBe(ICONS['sound-off']);
+           hud.render(v, { ...meta, muted: false });
+           expect(root.querySelector('[data-action="mute"]')!.innerHTML).toBe(ICONS['sound-on']);
+           expect(root.querySelector('.meter-pct')!.textContent).toBe('0%');
+         });
+         it('puts overlays in a panel card', () => {
+           const c = new PlayController(makeLevel({}));
+           const hud = new Hud(root, handlers());
+           hud.render(c.view, meta);
+           hud.showError();
+           expect(root.querySelector('.overlay > .panel h2')!.textContent).toBe('Something went wrong');
+         });
+       });
+       ```
+
+       Import `ICONS` from `../../src/ui/icons`.
+  3. In `tests/render/sceneMath.test.ts`, change the expected sky colours to `{ top: '#2c3540', bottom: '#4a4336' }` at 0 and `{ top: '#4f7262', bottom: '#d2a85e' }` at 1.
+  4. In `tests/app/app.test.ts`, inside `describe('App v1.3 story and Pip', …)`, add:
+
+     ```ts
+       it('the places screen counts restored places and marks locked ones with a lock', () => {
+         const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], storySeen: true, settings: {} });
+         new App(root, stage, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts);
+         click('[data-nav="select"]');
+         expect(root.querySelector('.select-screen .progress-note')!.textContent).toBe(`1 of ${LEVELS.length} restored`);
+         expect(root.querySelector('[data-level="0"] .card-icon svg')).not.toBeNull();
+         expect(root.querySelector('[data-level="2"] .card-icon svg')).not.toBeNull();
+         expect(root.querySelector('[data-level="1"] .card-icon')).toBeNull();
+       });
+     ```
+
+- [ ] **Step 2: Run them and watch them fail.**
+  - Run: `npx vitest run tests/ui tests/render/sceneMath.test.ts tests/app`
+  - Expected: FAIL on the missing icons, `.batches .n`, the toolbar role, `.meter-pct`, `.panel`, the sky colours and `.progress-note`.
+
+- [ ] **Step 3: Implement.**
+  1. **`icons.ts`:** add the nine icons with the same `svg()` helper and stroke style as `help`. Each is `fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"`:
+     - `menu`: three lines.
+     - `undo`: curved arrow back.
+     - `restart`: circular arrow.
+     - `rotate-left` and `rotate-right`: chevrons.
+     - `sound-on`: speaker plus two waves.
+     - `sound-off`: speaker plus an ×.
+     - `lock`: a padlock.
+     - `leaf`: a leaf with its vein.
+  2. **`hud.ts` markup:**
+     - The menu button content becomes `${ICONS.menu}`.
+     - The meter is followed by `<span class="meter-pct" aria-hidden="true">${pct}%</span>`.
+     - Batches become `<div class="batches" title="Scrap batches left" aria-label="${n} batches left">${ICONS.crate}<span class="n">${n}</span></div>`.
+     - Tools become `<div class="hud-tools" role="toolbar" aria-label="Tools">` with help · sep · undo, restart · sep · rotate-left, rotate-right · sep · mute.
+       - Each button's content is its `ICONS` entry.
+       - Mute uses `sound-off` when muted and `sound-on` otherwise.
+     - `overlay()` wraps each overlay's inner markup in `<div class="panel">…</div>`.
+  3. **`app.ts` places screen:**
+     - Under the heading, add `<p class="progress-note">${done} of ${n} restored</p>`.
+     - Each card gets `<span class="card-icon" aria-hidden="true">${ICONS.lock}</span>` when locked, or `${ICONS.leaf}` when completed, and none when open.
+     - The title menu gets the class `menu glass`.
+  4. **`sceneMath.ts`:** set `skyColors` to `lerpColor(0x2c3540, 0x4f7262, p)` for the top and `lerpColor(0x4a4336, 0xd2a85e, p)` for the bottom.
+  5. **`palette.ts`:** set `concreteDry: 0x9b978d` and `soilDry: 0x7a6a56`.
+  6. **`styles.css`** (append a "v1.3 look and feel" block that overrides the earlier rules):
+     - Tokens: `--glass: rgba(28, 31, 26, 0.62)`, `--glass-border: rgba(241, 237, 226, 0.12)` and a `--blur: blur(12px) saturate(1.2)` backdrop.
+     - `.hud-top`: a glass pill with `max-width: 820px`, centred.
+     - Meter: a 10 px track at `rgba(255, 255, 255, 0.1)`, filled with `linear-gradient(90deg, #6f9a3a, #b5d86a)`, plus `.meter-pct` (tabular numbers, 13 px).
+     - `.batches`: a chip, with its icon at 20 px.
+     - `.hud-tools`: a glass panel, radius 22, padding 6, gap 2. Buttons are transparent, 44 px, with icons at 22 px and a hover background. `.sep` is 1 px, 70% wide.
+     - `@media (max-width: 600px)`:
+       - `.hud-tools` becomes horizontal and centred at the top + 64 px.
+       - `.hint` and `.coach` move to the top + 122 px.
+       - `.tray .group-label` becomes a 1 px divider (`font-size: 0`).
+     - `.tray`: a floating glass bar (`left`/`right` 12 px, `bottom` 12 + safe area, radius 22, `width: fit-content`, `max-width: calc(100% - 24px)`, `margin: 0 auto`).
+     - `.toast`: moves to bottom + 96 px. `.pip`: moves to bottom + 140 px.
+     - `.overlay .panel`: a glass card, radius 24, padding 24 / 28, with a max width.
+     - Buttons: glass by default. `.primary`/`.selected` use a moss gradient with a soft glow. Disabled is `opacity 0.35` plus `filter: grayscale(1)`.
+     - `#stage::after`: a vignette radial gradient with `pointer-events: none`.
+     - `.logo`: a soft text glow. `.menu.glass`: a glass card with padding.
+     - Level cards: glass. Completed cards get a green gradient tint. `.card-icon` sits top-right at 22 px.
+     - `.progress-note`: muted text.
+
+- [ ] **Step 4: Run the tests and watch them pass.**
+  - Run: `npm test 2>&1 | grep -E "Test Files|Tests"; npx tsc --noEmit`
+  - Expected: all green.
+
+- [ ] **Step 5: Check it by eye.** Screenshot the title, places and play screens at desktop 1280×800 and phone 390×844.
+  - Nothing should overlap.
+  - The tool dock should not cover the board on the phone.
+  - The tray should fit (it scrolls rather than clips).
+  - Fix any problem by changing the CSS only.
+
+- [ ] **Step 6: Commit.**
+
+```bash
+git add src tests
+git commit -m "feat(ui): one icon set, grouped glass tool dock, clearer top bar and tray, warmer sky"
+```
+
+---
+
+### Task 10: Verify in the browser, final review, ship
 
 **Files:**
 - Throwaway scripts in `$CLAUDE_JOB_DIR/tmp/pw/` (not committed). Use the system Chrome with playwright-core, as before.

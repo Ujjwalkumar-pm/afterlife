@@ -87,3 +87,25 @@ Voice narration, multiple characters, a story between levels, and new plant type
 | Laundromat | flower 4, vine 3 | Hint-only beginner needed 12 bonus packs (limit 8) | flower 5, vine 5: 6 packs, solver 24 moves |
 | Bus Depot | 8 single-tile bays, moss 4, vine 2 | Beginner reached "The garden rests" at 87% | 6 bays, moss 5, vine 3: 2 packs, solver 21 moves |
 | Rooftop Garden | as listed | Solver needs beam 150 (beam 40 tops out at 52%) | unchanged: 6 packs, solver 27 moves at beam 150 |
+
+## 9. Look and feel (added 3 Oct 2026 at Ujjwal's request: "Improve this UI & overall look & feel")
+
+Problems seen in screenshots of the live game:
+- The tool column mixes text glyphs (↶ ⟲ ◀ ▶), an emoji speaker and one SVG, in identical dark circles with no grouping, and the disabled Undo is nearly invisible.
+- On phones the column covers the board's right side and the tray is cut off.
+- The empty meter is invisible.
+- The batch dots are unexplained.
+- The palette is grey and dull.
+
+**Changes:**
+- **One icon set:** inline SVG line icons, 32×32 viewBox with a 2.4 stroke, for menu, help, undo, restart, rotate left and right, sound on and off, lock and leaf. No emoji or text glyphs anywhere in the HUD.
+- **Tool dock:** one frosted-glass panel with grouped buttons: help · undo, restart · rotate ◀ ▶ · sound, with thin dividers between groups. It is vertical on the right on desktop. On phones (≤ 600 px wide) it is a horizontal row under the top bar, so the board keeps its full width. Disabled buttons read as disabled, not as missing.
+- **Top bar:** a glass bar holding the menu button, the place name, a green-gradient meter with a visible track and a percentage, and the scrap batches shown as a crate icon with a count (with a tooltip and aria-label "N batches left").
+- **Tray:** a floating glass bar with rounded chips. On phones the "Seeds" and "Scrap" labels become thin dividers, so more chips fit.
+- **Panels:** the win, rests and error overlays sit in a glass card. Hint and coach pills use the same glass style.
+- **Colour:**
+  - The sky changes from cool dusk (`#2c3540` → `#4a4336`) to warm gold (`#4f7262` → `#d2a85e`) as the place is restored.
+  - A soft vignette frames the board.
+  - Dry concrete and soil are a little warmer and lighter: concrete `0x9b978d`, soil `0x7a6a56`.
+- **Title and places:** the logo gets a soft glow, and the menu sits in a glass card. Place cards show a lock icon when locked and a leaf when restored, and the screen heading shows "N of 8 restored".
+- **Unchanged:** all hit targets stay ≥ 44 px, focus rings stay visible, and Reduce motion keeps working.
