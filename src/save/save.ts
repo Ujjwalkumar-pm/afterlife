@@ -4,6 +4,7 @@ export interface Settings {
   reducedMotion: boolean;
   muted: boolean;
   volume: number;
+  vibration: boolean;
 }
 
 export interface SaveData {
@@ -14,6 +15,8 @@ export interface SaveData {
   stars: Record<string, 1 | 2 | 3>;
   /** Hints used per place since it was last restored (they are not refunded by restarting or leaving). */
   hintsUsed: Record<string, number>;
+  /** The day each place's badge was first earned (YYYY-MM-DD). */
+  badges: Record<string, { date: string }>;
   settings: Settings;
 }
 
@@ -26,7 +29,8 @@ export const defaultSave = (): SaveData => ({
   storySeen: false,
   stars: {},
   hintsUsed: {},
-  settings: { reducedMotion: false, muted: false, volume: 0.8 },
+  badges: {},
+  settings: { reducedMotion: false, muted: false, volume: 0.8, vibration: true },
 });
 
 export function loadSave(store: Store | null): SaveData {
@@ -52,10 +56,17 @@ export function loadSave(store: Store | null): SaveData {
           (e): e is [string, number] => Number.isInteger(e[1]) && (e[1] as number) >= 1 && (e[1] as number) <= 3,
         ),
       ),
+      badges: Object.fromEntries(
+        Object.entries(typeof d.badges === 'object' && d.badges !== null ? (d.badges as Record<string, unknown>) : {}).flatMap(([k, v]) => {
+          const date = typeof v === 'object' && v !== null ? (v as { date?: unknown }).date : undefined;
+          return typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? [[k, { date }]] : [];
+        }),
+      ),
       settings: {
         reducedMotion: typeof s.reducedMotion === 'boolean' ? s.reducedMotion : base.settings.reducedMotion,
         muted: typeof s.muted === 'boolean' ? s.muted : base.settings.muted,
         volume: typeof s.volume === 'number' && s.volume >= 0 && s.volume <= 1 ? s.volume : base.settings.volume,
+        vibration: typeof s.vibration === 'boolean' ? s.vibration : base.settings.vibration,
       },
     };
   } catch {
@@ -112,4 +123,9 @@ export function safeStorage(): Store | null {
 
 export function recordStars(data: SaveData, id: string, stars: 1 | 2 | 3): SaveData {
   return (data.stars[id] ?? 0) >= stars ? data : { ...data, stars: { ...data.stars, [id]: stars } };
+}
+
+/** Keeps the first day a place's badge was earned. */
+export function recordBadge(data: SaveData, id: string, date: string): SaveData {
+  return data.badges[id] ? data : { ...data, badges: { ...data.badges, [id]: { date } } };
 }

@@ -288,3 +288,6 @@ button.danger:hover:not(:disabled) { background: rgba(168, 74, 60, 0.4); }
 .app-toast { z-index: 7; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 40px); }
 .reset-confirm .panel { background: rgba(30, 33, 27, 0.97); }
 .app-toast { white-space: nowrap; }
+
+/* v1.6 confetti */
+.confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 20; pointer-events: none; }
