@@ -265,3 +265,15 @@ button:disabled { opacity: 0.35; filter: grayscale(1); }
 .hint, .toast, .overlay .panel { text-align: center; }
 .hud-top { align-items: center; }
 .hud-top .level-name { line-height: 1.2; }
+/* v1.4 review: Next sits above the tray (never scrolled out of view); tray tightens on tablets */
+.next-chip { position: absolute; right: 16px; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px); display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--glass); border: 1px dashed rgba(241, 237, 226, 0.3); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); opacity: 0.9; pointer-events: none; }
+.next-chip .group-label { padding: 0 4px 0 8px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.next-chip .icon { width: 22px; height: 22px; }
+@media (max-width: 600px), (max-height: 500px) { .next-chip { display: none; } }
+@media (max-width: 1100px) {
+  .tray button { padding: 0 10px 0 8px; }
+  .tray .group-label { font-size: 0; width: 1px; height: 28px; padding: 0; margin: 0 2px; background: var(--glass-border); }
+  .tray .group-label:first-child { display: none; }
+}
+.hud:has(.toast) .next-chip { display: none; }
+@media (max-width: 900px) { .tray [data-action='scrap'] .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }

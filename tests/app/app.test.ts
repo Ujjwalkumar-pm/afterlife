@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { App, type Stage } from '../../src/app/app';
 import { planTutorial } from '../../src/game/tutorial';
+import { starsFor } from '../../src/game/scoring';
 import { LEVELS } from '../../src/levels';
 import { SAVE_KEY, type Store } from '../../src/save/save';
 
@@ -578,5 +579,36 @@ describe('App v1.4 hints', () => {
     expect(highlight).toHaveBeenLastCalledWith(null);
     click('[data-action="hint"]');
     expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
+  });
+  it('no nudge while a paid hint is still glowing', () => {
+    vi.useFakeTimers();
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    vi.advanceTimersByTime(1000);
+    click('[data-action="hint"]');
+    vi.advanceTimersByTime(9000);
+    expect(hintBtn().classList.contains('nudge')).toBe(false);
+    expect(line().textContent).not.toBe('Stuck? Tap the bulb for a hint.');
+    vi.useRealTimers();
+  });
+  it('after a win (even while decorating) hints and the nudge are off', () => {
+    vi.useFakeTimers();
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(0);
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    click('[data-action="keep"]');
+    expect(hintBtn().disabled).toBe(true);
+    vi.advanceTimersByTime(9000);
+    expect(hintBtn().classList.contains('nudge')).toBe(false);
+    vi.useRealTimers();
+  });
+  it('one hint gives exactly 2 stars on a clean Bus Stop solve', () => {
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const app = new App(root, stage, store, LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="hint"]');
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    const clean = JSON.parse(store.data[SAVE_KEY]!).stars['bus-stop'];
+    expect(clean).toBe(Math.min(2, starsFor(LEVELS[0]!, app.controller!.view.state, 0)));
   });
 });

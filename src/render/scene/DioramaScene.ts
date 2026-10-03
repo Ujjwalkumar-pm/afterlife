@@ -7,7 +7,7 @@ import manifest from '../objects/sprites.json';
 import { makeSpriteObjectArt, spriteAssets, type SpriteManifest } from '../objects/spriteArt';
 import { darken, lerpColor, PALETTE } from '../palette';
 import { ensurePlantTexture, PLANT_RES } from '../plants/plantTextures';
-import { swipeTurn } from './screen';
+import { isDrag, swipeTurn } from './screen';
 import { Ambient, applySky, drawIsland, makeParticleTextures, type Rect } from './atmosphere';
 import { Celebration } from './celebration';
 import { Effects } from './effects';
@@ -119,6 +119,12 @@ export class DioramaScene extends Phaser.Scene {
     this.input.mouse?.disableContextMenu();
     this.input.addPointer(1);
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      // A second finger makes it a pinch from the start, even before anything moves.
+      if (this.input.pointer1.isDown && this.input.pointer2.isDown) {
+        this.gate.pinch();
+        this.pressAt = null;
+        return;
+      }
       this.gate.down();
       this.pressAt = { x: p.x, y: p.y };
     });
@@ -514,12 +520,15 @@ export class DioramaScene extends Phaser.Scene {
     // A sideways drag turns the board a quarter (never a tap, so it never places anything).
     const start = this.pressAt;
     this.pressAt = null;
-    if (isTap && !wasPinching && start && this.ctrl && this.opts.interactive && this.inputEnabled && !this.celebration.running) {
-      const turn = swipeTurn((p.x - start.x) / this.px, (p.y - start.y) / this.px);
-      if (turn !== 0) {
+    if (isTap && !wasPinching && start && (p.wasTouch || p.leftButtonReleased())) {
+      const dx = (p.x - start.x) / this.px;
+      const dy = (p.y - start.y) / this.px;
+      const turn = swipeTurn(dx, dy);
+      if (turn !== 0 && this.ctrl && this.opts.interactive && this.inputEnabled && !this.celebration.running) {
         this.ctrl.rotate(turn);
         return;
       }
+      if (isDrag(dx, dy)) return; // a drag that isn't a clean sideways swipe does nothing
     }
     if (!isTap || !this.ctrl || !this.opts.interactive || !this.inputEnabled || this.celebration.running) return;
     if (p.rightButtonReleased()) {

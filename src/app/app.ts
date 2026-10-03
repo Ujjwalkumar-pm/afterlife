@@ -128,7 +128,7 @@ export class App {
       hint: () => this.useHint(),
     });
     this.hud = hud;
-    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null, hintsLeft: MAX_HINTS - this.hintsUsed, hintAvailable: !this.tutorial && ctrl.view.overlay === 'none', nudge: this.nudge, hintsUsed: this.hintsUsed });
+    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null, hintsLeft: MAX_HINTS - this.hintsUsed, hintAvailable: !this.tutorial && ctrl.view.overlay === 'none' && !ctrl.view.state.won, nudge: this.nudge, hintsUsed: this.hintsUsed });
     let lastOverlay = ctrl.view.overlay;
     let lastProgress = ctrl.view.progress;
     let hintState = ctrl.view.state;
@@ -303,7 +303,7 @@ export class App {
     this.hintTimer = setTimeout(() => {
       this.hintTimer = null;
       // A nudge only points at the bulb: it reveals nothing and costs nothing.
-      if (this.controller !== ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none' || this.hintsUsed >= MAX_HINTS) return;
+      if (this.controller !== ctrl || this.tutorial || this.howto || this.hintShown || ctrl.view.overlay !== 'none' || ctrl.view.state.won || this.hintsUsed >= MAX_HINTS) return;
       this.nudge = true;
       this.renderHud?.();
       this.hud?.setPip({ mood: 'point', line: 'Stuck? Tap the bulb for a hint.' });
@@ -313,7 +313,10 @@ export class App {
   /** The Hint button: shows the best move. 3 per place; each one lowers the most stars you can get. */
   private useHint(): void {
     const ctrl = this.controller;
-    if (!ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none' || this.hintsUsed >= MAX_HINTS) return;
+    if (!ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none' || ctrl.view.state.won || this.hintsUsed >= MAX_HINTS) return;
+    // The player asked: no idle nudge on top of the hint they just paid for.
+    if (this.hintTimer) clearTimeout(this.hintTimer);
+    this.hintTimer = null;
     const say = pipFor({ newOverlay: 'none', tutorial: false, events: [], milestone: false, hint: true });
     if (this.hintShown) {
       this.hud?.setPip(say); // the same hint is still on screen: no charge

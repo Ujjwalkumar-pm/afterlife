@@ -1,4 +1,5 @@
 import { PLANT_TYPES, RADIUS, SCRAP, type PlantType } from '../engine';
+import { MAX_HINTS } from '../game/scoring';
 import type { Selection, View } from '../game/controller';
 import type { CoachStep } from '../game/tutorial';
 import type { PipMood, PipSay } from '../game/pip';
@@ -89,7 +90,11 @@ export class Hud {
     // still completes as a click and keyboard focus is not lost.
     if (html === this.lastHtml) return;
     this.lastHtml = html;
+    // Rebuilding replaces the buttons; put keyboard focus back on the same control.
+    const active = document.activeElement as HTMLElement | null;
+    const focusKey = active && this.el.contains(active) && active.dataset.action ? `[data-action="${active.dataset.action}"]${active.dataset.slot ? `[data-slot="${active.dataset.slot}"]` : ''}${active.dataset.plant ? `[data-plant="${active.dataset.plant}"]` : ''}` : null;
     this.el.innerHTML = html;
+    if (focusKey) this.el.querySelector<HTMLElement>(focusKey)?.focus();
     const overlay = this.error ? 'error' : view.overlay;
     if (overlay !== this.lastOverlay) {
       this.lastOverlay = overlay;
@@ -212,7 +217,7 @@ export class Hud {
       })
       .join('');
     const upcoming = s.batches[0] ?? [];
-    const next = upcoming.length ? `<span class="next" aria-label="Next: ${upcoming.join(', ')}"><span class="group-label">Next</span>${upcoming.map((k) => ICONS[k] ?? '').join('')}</span>` : '';
+    const next = upcoming.length ? `<div class="next-chip" role="note" aria-label="Next: ${upcoming.join(', ')}"><span class="group-label">Next</span>${upcoming.map((k) => ICONS[k] ?? '').join('')}</div>` : '';
     return `
 <header class="hud-top">
   <button data-action="menu" aria-label="Back to places">${ICONS.menu}</button>
@@ -234,7 +239,8 @@ ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coac
   <span class="sep"></span>
   <button data-action="mute" aria-label="Mute" aria-pressed="${m.muted}">${m.muted ? ICONS['sound-off'] : ICONS['sound-on']}</button>
 </div>
-<footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}${next}</footer>
+<footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
+${next}
 ${this.toastUntil > now ? '<div class="toast" role="status">Bonus pack: +2 moss, +1 tyre</div>' : ''}
 ${this.overlay(v, m)}`;
   }
@@ -245,7 +251,7 @@ ${this.overlay(v, m)}`;
     }
     if (v.overlay === 'restored') {
       const primary = m.hasNext ? '<button data-action="next" class="primary">Next place</button>' : '<button data-action="menu" class="primary">Back to places</button>';
-      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p>${m.hintsUsed ? `<p class="hints-used">Hints used: ${m.hintsUsed} of 3</p>` : ''}<div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p>${m.hintsUsed ? `<p class="hints-used">Hints used: ${m.hintsUsed} of ${MAX_HINTS}</p>` : ''}<div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
     }
     if (v.overlay === 'rests') {
       return `<div class="overlay" role="dialog" aria-label="The garden rests"><div class="panel"><h2>The garden rests…</h2><p>Nothing more can grow here. Undo a few moves, or restart.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div></div>`;

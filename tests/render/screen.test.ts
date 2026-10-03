@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderScale, swipeTurn } from '../../src/render/scene/screen';
+import { isDrag, renderScale, swipeTurn } from '../../src/render/scene/screen';
 
 describe('renderScale', () => {
   it('follows the device pixel ratio, at least 1 and capped at 2', () => {
@@ -22,5 +22,13 @@ describe('swipeTurn', () => {
     expect(swipeTurn(10, 80)).toBe(0);
     expect(swipeTurn(60, 50)).toBe(0);
     expect(swipeTurn(0, 0)).toBe(0);
+  });
+});
+
+describe('isDrag', () => {
+  it('any press that travels 48 CSS px or more, in any direction, is a drag (never a tap)', () => {
+    expect(isDrag(10, 5)).toBe(false);
+    expect(isDrag(40, 40)).toBe(true);
+    expect(isDrag(0, 50)).toBe(true);
   });
 });

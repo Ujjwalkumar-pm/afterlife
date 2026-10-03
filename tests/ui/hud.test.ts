@@ -479,11 +479,35 @@ describe('Hud scrap clarity', () => {
     const c = new PlayController(makeLevel({ batches: [['tyre'], ['crate', 'can']] }));
     const hud = new Hud(root, handlers());
     hud.render(c.view, meta);
-    const next = root.querySelector('.tray .next')!;
+    const next = root.querySelector('.next-chip')!;
+    expect(root.querySelector('.tray .next-chip')).toBeNull();
     expect(next.getAttribute('aria-label')).toBe('Next: crate, can');
     expect(next.querySelectorAll('svg')).toHaveLength(2);
     const last = new PlayController(makeLevel({ batches: [['tyre']] }));
     hud.render(last.view, meta);
-    expect(root.querySelector('.tray .next')).toBeNull();
+    expect(root.querySelector('.next-chip')).toBeNull();
+  });
+});
+
+describe('Hud keeps keyboard focus across redraws', () => {
+  it('the focused tool stays focused when the markup changes', () => {
+    const hud = new Hud(root, handlers());
+    const v = new PlayController(makeLevel({})).view;
+    hud.render(v, { ...meta, hintsLeft: 3, hintAvailable: true });
+    root.querySelector<HTMLElement>('[data-action="restart"]')!.focus();
+    hud.render(v, { ...meta, hintsLeft: 3, hintAvailable: true, nudge: true });
+    expect(document.activeElement).toBe(root.querySelector('[data-action="restart"]'));
+    root.querySelector<HTMLElement>('[data-action="hint"]')!.focus();
+    hud.render(v, { ...meta, hintsLeft: 2, hintAvailable: true });
+    expect(document.activeElement).toBe(root.querySelector('[data-action="hint"]'));
+  });
+  it('a focused scrap chip keeps focus by its slot', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre', 'crate']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    root.querySelector<HTMLElement>('[data-action="scrap"][data-slot="1"]')!.focus();
+    c.select({ kind: 'scrap', slot: 1 });
+    hud.render(c.view, meta);
+    expect(document.activeElement).toBe(root.querySelector('[data-action="scrap"][data-slot="1"]'));
   });
 });
