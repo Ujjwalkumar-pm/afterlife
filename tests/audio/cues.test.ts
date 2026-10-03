@@ -66,3 +66,12 @@ describe('silentSound', () => {
     }).not.toThrow();
   });
 });
+
+describe('v1.2 cues', () => {
+  it('adds bonus and combo cues', () => {
+    const g = (n: number): GameEvent[] => Array.from({ length: n }, () => ({ type: 'grew', pos: p, stage: 1 }) as GameEvent);
+    expect(cuesFor([{ type: 'bonus' }])).toEqual(['bonus']);
+    expect(cuesFor([{ type: 'placedScrap', pos: p, scrap: 'tyre' }, ...g(5)])).toContain('combo');
+    expect(cuesFor([{ type: 'placedScrap', pos: p, scrap: 'tyre' }, ...g(2)])).not.toContain('combo');
+  });
+});

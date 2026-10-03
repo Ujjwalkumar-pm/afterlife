@@ -10,6 +10,7 @@ export interface SaveData {
   version: 1;
   completed: string[];
   tutorialDone: boolean;
+  stars: Record<string, 1 | 2 | 3>;
   settings: Settings;
 }
 
@@ -19,6 +20,7 @@ export const defaultSave = (): SaveData => ({
   version: 1,
   completed: [],
   tutorialDone: false,
+  stars: {},
   settings: { reducedMotion: false, muted: false, volume: 0.8 },
 });
 
@@ -34,6 +36,11 @@ export function loadSave(store: Store | null): SaveData {
       version: 1,
       completed: Array.isArray(d.completed) ? d.completed.filter((x): x is string => typeof x === 'string') : [],
       tutorialDone: d.tutorialDone === true,
+      stars: Object.fromEntries(
+        Object.entries(typeof d.stars === 'object' && d.stars !== null ? (d.stars as Record<string, unknown>) : {}).filter(
+          (e): e is [string, 1 | 2 | 3] => e[1] === 1 || e[1] === 2 || e[1] === 3,
+        ),
+      ),
       settings: {
         reducedMotion: typeof s.reducedMotion === 'boolean' ? s.reducedMotion : base.settings.reducedMotion,
         muted: typeof s.muted === 'boolean' ? s.muted : base.settings.muted,
@@ -90,4 +97,8 @@ export function safeStorage(): Store | null {
   } catch {
     return null;
   }
+}
+
+export function recordStars(data: SaveData, id: string, stars: 1 | 2 | 3): SaveData {
+  return (data.stars[id] ?? 0) >= stars ? data : { ...data, stars: { ...data.stars, [id]: stars } };
 }

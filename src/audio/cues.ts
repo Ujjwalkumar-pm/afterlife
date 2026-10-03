@@ -1,6 +1,7 @@
 import type { GameEvent } from '../engine';
+import { comboFor } from '../game/scoring';
 
-export type Cue = 'seed' | 'scrap' | 'grow' | 'spread' | 'bloom' | 'harvest' | 'newBatch' | 'won' | 'rests';
+export type Cue = 'seed' | 'scrap' | 'grow' | 'spread' | 'bloom' | 'harvest' | 'newBatch' | 'won' | 'rests' | 'combo' | 'milestone' | 'bonus';
 
 const MAX_GROW_NOTES = 3;
 
@@ -34,10 +35,14 @@ export function cuesFor(events: GameEvent[]): Cue[] {
       case 'newBatch':
         out.push('newBatch');
         break;
+      case 'bonus':
+        out.push('bonus');
+        break;
       default:
         break;
     }
   }
+  if (comboFor(events)) out.push('combo');
   return out;
 }
 

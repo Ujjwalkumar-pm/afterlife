@@ -145,6 +145,16 @@ export class ToneSound implements Sound {
           n.pad.triggerAttackRelease(['C3', 'G3', 'E4', 'G4', 'C5'], '2m', now);
           n.bell.triggerAttackRelease(['E5', 'G5', 'C6'], '4n', now + 0.4);
           break;
+        case 'combo':
+          ['C5', 'E5', 'G5', 'C6'].forEach((note, i) => n.bell.triggerAttackRelease(note, '16n', now + 0.12 + i * 0.06));
+          break;
+        case 'milestone':
+          n.pad.triggerAttackRelease(['F3', 'C4', 'A4'], '2n', now);
+          n.bell.triggerAttackRelease(['A5', 'C6'], '8n', now + 0.2);
+          break;
+        case 'bonus':
+          n.pluck.triggerAttackRelease(['G5', 'C6'], '16n', now);
+          break;
         case 'rests':
           n.pad.triggerAttackRelease(['A2', 'E3', 'C4'], '1m', now);
           break;

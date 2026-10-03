@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSave, loadSave, markCompleted, probeStorage, SAVE_KEY, writeSave, type Store } from '../../src/save/save';
+import { defaultSave, loadSave, markCompleted, probeStorage, recordStars, SAVE_KEY, writeSave, type Store } from '../../src/save/save';
 
 const memoryStore = (initial: Record<string, string> = {}): Store & { data: Record<string, string> } => {
   const data = { ...initial };
@@ -35,6 +35,7 @@ describe('save', () => {
       version: 1,
       completed: ['bus-stop'],
       tutorialDone: false,
+      stars: {},
       settings: { reducedMotion: false, muted: true, volume: 0.8 },
     });
   });
@@ -91,5 +92,18 @@ describe('tutorialDone', () => {
   it('reads false from an old save without the field', () => {
     const old = JSON.stringify({ version: 1, completed: ['bus-stop'], settings: { reducedMotion: false, muted: false, volume: 0.8 } });
     expect(loadSave(memoryStore({ [SAVE_KEY]: old })).tutorialDone).toBe(false);
+  });
+});
+
+describe('stars', () => {
+  it('defaults to {}, keeps the best, and drops invalid entries', () => {
+    expect(defaultSave().stars).toEqual({});
+    let d = recordStars(defaultSave(), 'bus-stop', 2);
+    d = recordStars(d, 'bus-stop', 1);
+    expect(d.stars).toEqual({ 'bus-stop': 2 });
+    d = recordStars(d, 'bus-stop', 3);
+    expect(d.stars['bus-stop']).toBe(3);
+    const raw = JSON.stringify({ version: 1, completed: [], stars: { a: 3, b: 7, c: 'x' }, settings: {} });
+    expect(loadSave(memoryStore({ [SAVE_KEY]: raw })).stars).toEqual({ a: 3 });
   });
 });
