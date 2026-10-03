@@ -503,4 +503,17 @@ describe('App v1.3 story and Pip', () => {
     expect(root.querySelector('[data-level="2"] .card-icon svg')).not.toBeNull();
     expect(root.querySelector('[data-level="1"] .card-icon')).toBeNull();
   });
+  it('Pip says the hint once per idle spell, not again when the hint switches the item', () => {
+    vi.useFakeTimers();
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    app.controller!.select({ kind: 'scrap', slot: 0 }); // the hint will switch back to a seed
+    vi.advanceTimersByTime(3100);
+    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(false);
+    vi.advanceTimersByTime(2600);
+    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(true);
+    vi.advanceTimersByTime(1500);
+    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(true);
+    vi.useRealTimers();
+  });
 });

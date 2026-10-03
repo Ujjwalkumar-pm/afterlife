@@ -44,6 +44,8 @@ export class App {
   private howto: HTMLElement | null = null;
   private hintTimer: ReturnType<typeof setTimeout> | null = null;
   private hintShown = false;
+  /** True while the hint itself switches the tray item, so that change doesn't restart the idle timer. */
+  private hintSelecting = false;
   private lastStars: 1 | 2 | 3 | null = null;
   private story: StoryPlayer | null = null;
   private readonly onHowtoKey = (e: KeyboardEvent) => {
@@ -160,7 +162,7 @@ export class App {
         hintState = view.state;
         hintSel = selKey;
         hintOverlay = view.overlay;
-        this.scheduleHint();
+        if (!this.hintSelecting) this.scheduleHint();
       }
     });
     this.renderHud = () => hud.render(ctrl.view, meta());
@@ -286,7 +288,14 @@ export class App {
       if (this.controller !== ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none') return;
       const move = suggestMove(ctrl.view.state, ctrl.view.selection);
       if (!move) return;
-      if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) ctrl.select(move.selection);
+      if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) {
+        this.hintSelecting = true;
+        try {
+          ctrl.select(move.selection);
+        } finally {
+          this.hintSelecting = false;
+        }
+      }
       this.hintShown = true;
       this.stage.highlight?.(move.tile);
       this.hud?.setPip(pipFor({ newOverlay: 'none', tutorial: false, events: [], milestone: false, hint: true }));

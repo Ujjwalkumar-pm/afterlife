@@ -27,3 +27,7 @@ describe.each(files)('%s', (file) => {
     expect(coverage(session.state)).toBeGreaterThanOrEqual(level.target);
   });
 });
+
+it('the Laundromat hint does not promise "no moss" (bonus packs always bring moss)', () => {
+  expect(LEVELS.find((l) => l.id === 'laundromat')!.hint).not.toMatch(/no moss/i);
+});

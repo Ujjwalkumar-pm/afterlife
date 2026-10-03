@@ -1,7 +1,7 @@
 {
   "id": "laundromat",
   "name": "Laundromat",
-  "hint": "No moss here. Tap a bloom — it gives you a vine seed.",
+  "hint": "Flowers rule here. Tap a bloom — it gives you a vine seed.",
   "width": 7,
   "height": 7,
   "ground": [
