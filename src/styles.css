@@ -255,7 +255,8 @@ button:disabled { opacity: 0.35; filter: grayscale(1); }
 .tray .reach { opacity: 1; }
 .tray .reach .icon { width: 16px; height: 16px; }
 .tray .group-label { align-self: center; line-height: 1; }
-.tray .next { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px 0 2px; opacity: 0.55; }
+.tray .next { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 4px; margin-left: 2px; border-radius: 999px; border: 1px dashed rgba(241, 237, 226, 0.28); opacity: 0.85; }
+.tray .next .group-label { padding-left: 6px; }
 .tray .next .icon { width: 22px; height: 22px; }
 @media (max-width: 600px), (max-height: 500px) { .tray .next { display: none; } }
 
