@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSave, loadSave, markCompleted, SAVE_KEY, writeSave, type Store } from '../../src/save/save';
+import { defaultSave, loadSave, markCompleted, probeStorage, SAVE_KEY, writeSave, type Store } from '../../src/save/save';
 
 const memoryStore = (initial: Record<string, string> = {}): Store & { data: Record<string, string> } => {
   const data = { ...initial };
@@ -45,5 +45,37 @@ describe('save', () => {
     const once = markCompleted(defaultSave(), 'bus-stop');
     expect(once.completed).toEqual(['bus-stop']);
     expect(markCompleted(once, 'bus-stop').completed).toEqual(['bus-stop']);
+  });
+});
+
+describe('probeStorage', () => {
+  const fake = (opts: { writes: boolean; reads: boolean; data?: Record<string, string> }) => {
+    const data = { ...(opts.data ?? {}) };
+    return {
+      getItem: (k: string) => {
+        if (!opts.reads) throw new Error('SecurityError');
+        return data[k] ?? null;
+      },
+      setItem: (k: string, v: string) => {
+        if (!opts.writes) throw new Error('QuotaExceededError');
+        data[k] = v;
+      },
+      removeItem: (k: string) => void delete data[k],
+    } as unknown as Storage;
+  };
+
+  it('returns the storage itself when reads and writes work', () => {
+    const s = fake({ writes: true, reads: true });
+    expect(probeStorage(s)).toBe(s);
+  });
+  it('returns a read-only store when writes fail but reads work', () => {
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], settings: {} });
+    const store = probeStorage(fake({ writes: false, reads: true, data: { [SAVE_KEY]: saved } }));
+    expect(store).not.toBeNull();
+    expect(loadSave(store).completed).toEqual(['bus-stop']);
+    expect(writeSave(store, defaultSave())).toBe(false);
+  });
+  it('returns null when nothing works', () => {
+    expect(probeStorage(fake({ writes: false, reads: false }))).toBeNull();
   });
 });

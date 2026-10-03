@@ -180,3 +180,14 @@ describe('view', () => {
     expect(seen[0]![0]!.type).toBe('placedSeed');
   });
 });
+
+describe('rotation and preview', () => {
+  it('rotate clears the hover preview so it never points at the old tile', () => {
+    const c = new PlayController(makeLevel());
+    c.select({ kind: 'seed', plant: 'moss' });
+    c.hover(at(1, 1));
+    expect(c.view.preview).not.toBeNull();
+    c.rotate(1);
+    expect(c.view.preview).toBeNull();
+  });
+});

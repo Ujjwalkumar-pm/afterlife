@@ -56,13 +56,34 @@ export function markCompleted(data: SaveData, id: string): SaveData {
   return data.completed.includes(id) ? data : { ...data, completed: [...data.completed, id] };
 }
 
-/** The browser's localStorage if it is usable, otherwise null (private mode, blocked cookies). */
-export function safeStorage(): Store | null {
+/**
+ * The given storage if it can be written; a read-only view if only reads work (full quota
+ * shouldn't hide saved progress); otherwise null.
+ */
+export function probeStorage(s: Storage): Store | null {
   try {
-    const s = window.localStorage;
     s.setItem('__afterlife_probe', '1');
     s.removeItem('__afterlife_probe');
     return s;
+  } catch {
+    try {
+      s.getItem(SAVE_KEY);
+      return {
+        getItem: (k) => s.getItem(k),
+        setItem: () => {
+          throw new Error('storage is read-only');
+        },
+      };
+    } catch {
+      return null;
+    }
+  }
+}
+
+/** The browser's localStorage, read-only, or null (private mode, blocked cookies). */
+export function safeStorage(): Store | null {
+  try {
+    return probeStorage(window.localStorage);
   } catch {
     return null;
   }

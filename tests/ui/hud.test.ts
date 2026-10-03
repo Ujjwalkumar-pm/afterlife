@@ -132,3 +132,25 @@ describe('Hud re-render stability', () => {
     expect(root.querySelector('[data-action="keep"]')).toBe(keep);
   });
 });
+
+describe('Hud overlays: focus and escape routes', () => {
+  it('moves focus to the primary button when an overlay appears', () => {
+    const c = new PlayController(makeLevel({ width: 3, height: 1, ground: ['...'], target: 0.3, batches: [['tyre', 'tyre']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    hud.render(c.view, meta);
+    expect(document.activeElement).toBe(root.querySelector('.overlay .primary'));
+  });
+
+  it('offers Back to places on the error overlay', () => {
+    const c = new PlayController(makeLevel());
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, meta);
+    hud.showError();
+    click(root.querySelector('.overlay [data-action="menu"]'));
+    expect(h.menu).toHaveBeenCalled();
+  });
+});

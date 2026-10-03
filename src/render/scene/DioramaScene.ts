@@ -48,6 +48,9 @@ export class DioramaScene extends Phaser.Scene {
     return () => t.remove(false);
   });
   private lastRotation: Rotation = 0;
+  private pressedOnCanvas = false;
+  private baseZoom = 1;
+  private userZoom = 1;
   private readonly art: ObjectArt = codeObjectArt;
 
   constructor() {
@@ -58,6 +61,7 @@ export class DioramaScene extends Phaser.Scene {
     this.layer = this.add.container(0, 0);
     this.input.mouse?.disableContextMenu();
     this.input.addPointer(1);
+    this.input.on('pointerdown', () => (this.pressedOnCanvas = true));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.onUp(p));
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? 0.9 : 1.1));
@@ -82,6 +86,7 @@ export class DioramaScene extends Phaser.Scene {
     this.unsubscribe = null;
     this.ctrl = ctrl;
     this.opts = opts;
+    this.userZoom = 1;
     this.celebration.cancel();
     this.layer.removeAll(true);
     if (!ctrl) return;
@@ -113,15 +118,18 @@ export class DioramaScene extends Phaser.Scene {
   fit(): void {
     if (!this.ctrl) return;
     const b = sceneBounds(this.isoOf(this.ctrl.view));
+    const narrow = this.scale.width < 600;
+    const side = narrow ? 16 : 96;
+    const hud = narrow ? 150 : HUD_SPACE;
+    this.baseZoom = clamp(Math.min(this.scale.width / (b.width + side), (this.scale.height - hud) / (b.height + 40)), 0.5, 3);
     const cam = this.cameras.main;
-    const zoom = clamp(Math.min(this.scale.width / (b.width + 96), (this.scale.height - HUD_SPACE) / (b.height + 40)), 0.5, 2.5);
-    cam.setZoom(zoom);
-    cam.centerOn(b.centerX, b.centerY - 10 / zoom);
+    cam.setZoom(clamp(this.baseZoom * this.userZoom, 0.5, 3));
+    cam.centerOn(b.centerX, b.centerY - 10 / cam.zoom);
   }
 
   private zoomBy(f: number): void {
-    const cam = this.cameras.main;
-    cam.setZoom(clamp(cam.zoom * f, 0.5, 3));
+    this.userZoom = clamp(this.userZoom * f, 0.5, 3);
+    this.cameras.main.setZoom(clamp(this.baseZoom * this.userZoom, 0.5, 3));
   }
 
   private pick(p: Phaser.Input.Pointer): Pos | null {
@@ -136,7 +144,10 @@ export class DioramaScene extends Phaser.Scene {
     if (a.isDown && b.isDown) {
       const d = Phaser.Math.Distance.Between(a.x, a.y, b.x, b.y);
       if (!this.pinch) this.pinch = { dist: d, zoom: this.cameras.main.zoom };
-      else this.cameras.main.setZoom(clamp((this.pinch.zoom * d) / this.pinch.dist, 0.5, 3));
+      else {
+        this.userZoom = clamp((this.pinch.zoom * d) / this.pinch.dist / this.baseZoom, 0.5, 3);
+        this.cameras.main.setZoom(clamp(this.baseZoom * this.userZoom, 0.5, 3));
+      }
       return true;
     }
     return false;
@@ -150,6 +161,8 @@ export class DioramaScene extends Phaser.Scene {
 
   private onUp(p: Phaser.Input.Pointer): void {
     if (!this.ctrl || !this.opts.interactive || this.celebration.running) return;
+    if (!this.pressedOnCanvas) return; // press started on the HTML layer (e.g. dragged off a tray button)
+    this.pressedOnCanvas = false;
     if (this.pinch) {
       if (!this.input.pointer1.isDown && !this.input.pointer2.isDown) this.pinch = null;
       return;

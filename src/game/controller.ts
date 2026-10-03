@@ -138,6 +138,7 @@ export class PlayController {
 
   rotate(dir: 1 | -1): void {
     this.rotation = ((this.rotation + dir + 4) % 4) as Rotation;
+    this.preview = null;
     this.emit([]);
   }
 

@@ -27,6 +27,7 @@ export class Hud {
   private error = false;
   private last: { view: View; meta: HudMeta } | null = null;
   private lastHtml = '';
+  private lastOverlay = '';
 
   constructor(root: HTMLElement, private readonly handlers: HudHandlers) {
     this.el = document.createElement('div');
@@ -43,6 +44,11 @@ export class Hud {
     if (html === this.lastHtml) return;
     this.lastHtml = html;
     this.el.innerHTML = html;
+    const overlay = this.error ? 'error' : view.overlay;
+    if (overlay !== this.lastOverlay) {
+      this.lastOverlay = overlay;
+      if (overlay !== 'none') this.el.querySelector<HTMLElement>('.overlay .primary')?.focus();
+    }
   }
 
   showError(): void {
@@ -118,7 +124,7 @@ ${this.overlay(v, m)}`;
 
   private overlay(v: View, m: HudMeta): string {
     if (this.error) {
-      return `<div class="overlay" role="dialog" aria-label="Error"><h2>Something went wrong</h2><div class="actions"><button data-action="restart" class="primary">Restart level</button></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Error"><h2>Something went wrong</h2><div class="actions"><button data-action="restart" class="primary">Restart level</button><button data-action="menu">Back to places</button></div></div>`;
     }
     if (v.overlay === 'restored') {
       const primary = m.hasNext ? '<button data-action="next" class="primary">Next place</button>' : '<button data-action="menu" class="primary">Back to places</button>';
