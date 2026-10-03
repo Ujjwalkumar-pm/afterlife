@@ -208,9 +208,11 @@ export class Hud {
         const on = sel?.kind === 'scrap' && sel.slot === i;
         const reach = RADIUS[SCRAP[k].size];
         const cls = `${on ? 'selected' : ''} ${coach?.target === 'scrap' && i === 0 ? 'coach-target' : ''}`.trim();
-        return `<button data-action="scrap" data-slot="${i}" class="${cls}" aria-pressed="${on}">${ICONS[k] ?? ''}<span class="label">${cap(k)}</span> <span class="reach" aria-label="reaches ${reach}">◇${reach}</span></button>`;
+        return `<button data-action="scrap" data-slot="${i}" class="${cls}" aria-pressed="${on}">${ICONS[k] ?? ''}<span class="label">${cap(k)}</span> <span class="reach" title="Reaches ${reach} tile${reach === 1 ? '' : 's'}" aria-label="reaches ${reach} tile${reach === 1 ? '' : 's'}">${ICONS.ring}<span class="n">${reach}</span></span></button>`;
       })
       .join('');
+    const upcoming = s.batches[0] ?? [];
+    const next = upcoming.length ? `<span class="next" aria-label="Next: ${upcoming.join(', ')}"><span class="group-label">Next</span>${upcoming.map((k) => ICONS[k] ?? '').join('')}</span>` : '';
     return `
 <header class="hud-top">
   <button data-action="menu" aria-label="Back to places">${ICONS.menu}</button>
@@ -232,7 +234,7 @@ ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coac
   <span class="sep"></span>
   <button data-action="mute" aria-label="Mute" aria-pressed="${m.muted}">${m.muted ? ICONS['sound-off'] : ICONS['sound-on']}</button>
 </div>
-<footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
+<footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}${next}</footer>
 ${this.toastUntil > now ? '<div class="toast" role="status">Bonus pack: +2 moss, +1 tyre</div>' : ''}
 ${this.overlay(v, m)}`;
   }

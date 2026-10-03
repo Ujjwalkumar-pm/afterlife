@@ -462,3 +462,28 @@ describe('Hud hint button', () => {
     expect(btn().classList.contains('nudge')).toBe(true);
   });
 });
+
+describe('Hud scrap clarity', () => {
+  it('each scrap chip carries a reach badge with a ring icon and spoken text', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre', 'crate', 'car']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    const badges = [...root.querySelectorAll('[data-action="scrap"] .reach')];
+    expect(badges.map((b) => b.querySelector('.n')!.textContent)).toEqual(['1', '2', '3']);
+    expect(badges[1]!.querySelector('svg')).not.toBeNull();
+    expect(badges[1]!.getAttribute('aria-label')).toBe('reaches 2 tiles');
+    expect(badges[0]!.getAttribute('aria-label')).toBe('reaches 1 tile');
+    expect(badges[1]!.getAttribute('title')).toBe('Reaches 2 tiles');
+  });
+  it('shows the next batch as a faded Next group, and nothing when no batch is left', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre'], ['crate', 'can']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    const next = root.querySelector('.tray .next')!;
+    expect(next.getAttribute('aria-label')).toBe('Next: crate, can');
+    expect(next.querySelectorAll('svg')).toHaveLength(2);
+    const last = new PlayController(makeLevel({ batches: [['tyre']] }));
+    hud.render(last.view, meta);
+    expect(root.querySelector('.tray .next')).toBeNull();
+  });
+});
