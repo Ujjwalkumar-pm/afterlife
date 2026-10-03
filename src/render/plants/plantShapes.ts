@@ -1,5 +1,5 @@
 import { nextRandom, type PlantType } from '../../engine';
-import { PALETTE } from '../palette';
+import { darken, lighten, PALETTE } from '../palette';
 
 export type Prim =
   | { kind: 'ellipse'; x: number; y: number; w: number; h: number; color: number }
@@ -40,13 +40,23 @@ function inDiamond(r: Rand, scale: number): { x: number; y: number } {
 
 function moss(p: PlantDrawInput, r: Rand, base: number): Prim[] {
   const out: Prim[] = [];
-  const n = 3 + p.stage * 4;
+  const n = 3 + p.stage * 3;
   for (let i = 0; i < n; i++) {
     const q = inDiamond(r, p.objectHeight > 0 ? 0.45 : 0.85);
-    const w = 6 + r() * 8;
-    out.push({ kind: 'ellipse', x: q.x, y: base + q.y, w, h: w * 0.55, color: pick(r, PALETTE.moss) });
+    const w = 7 + r() * 8;
+    const c = pick(r, PALETTE.moss);
+    out.push({ kind: 'ellipse', x: q.x, y: base + q.y + 1.5, w: w * 1.05, h: w * 0.5, color: darken(c, 0.3) });
+    out.push({ kind: 'ellipse', x: q.x, y: base + q.y, w, h: w * 0.55, color: c });
+    out.push({ kind: 'ellipse', x: q.x - w * 0.18, y: base + q.y - w * 0.12, w: w * 0.35, h: w * 0.18, color: lighten(c, 0.35) });
   }
   return out;
+}
+
+function leaf(x: number, y: number, c: number): Prim[] {
+  return [
+    { kind: 'ellipse', x, y, w: 8, h: 4.5, color: c },
+    { kind: 'line', points: [x - 3, y + 0.5, x + 3, y - 0.5], width: 0.8, color: PALETTE.vein },
+  ];
 }
 
 function vine(p: PlantDrawInput, r: Rand): Prim[] {
@@ -63,7 +73,7 @@ function vine(p: PlantDrawInput, r: Rand): Prim[] {
       points.push(start.x + Math.sin(t * 3 + i) * 4 + (climbing ? 0 : drift.x * t), start.y - climb * t + (climbing ? 0 : drift.y * t));
     }
     out.push({ kind: 'line', points, width: 2, color: PALETTE.stem });
-    for (let k = 1; k <= 5; k += 2) out.push({ kind: 'ellipse', x: points[k * 2]!, y: points[k * 2 + 1]!, w: 7, h: 4, color: pick(r, PALETTE.vine) });
+    for (let k = 1; k <= 5; k += 2) out.push(...leaf(points[k * 2]!, points[k * 2 + 1]!, pick(r, PALETTE.vine)));
   }
   return out;
 }
@@ -75,7 +85,9 @@ function flower(p: PlantDrawInput, r: Rand, base: number): Prim[] {
   const out: Prim[] = [
     { kind: 'line', points: [x, base, head.x, head.y], width: 2, color: PALETTE.stem },
     { kind: 'ellipse', x: x - 4, y: base - h * 0.4, w: 8, h: 4, color: PALETTE.leaf },
+    { kind: 'ellipse', x: x - 5, y: base - h * 0.4 - 1, w: 3, h: 1.4, color: lighten(PALETTE.leaf, 0.4) },
     { kind: 'ellipse', x: x + 4, y: base - h * 0.6, w: 8, h: 4, color: PALETTE.leaf },
+    { kind: 'ellipse', x: x + 3, y: base - h * 0.6 - 1, w: 3, h: 1.4, color: lighten(PALETTE.leaf, 0.4) },
   ];
   if (p.bloom) {
     const petal = pick(r, PALETTE.petal);
@@ -100,6 +112,8 @@ function bamboo(p: PlantDrawInput, r: Rand, base: number): Prim[] {
     out.push({ kind: 'line', points: [x, base, x, base - ph], width: 3, color: pick(r, PALETTE.bamboo) });
     for (let s = 8; s < ph; s += 8) out.push({ kind: 'line', points: [x - 2, base - s, x + 2, base - s], width: 1, color: PALETTE.bambooNode });
     out.push({ kind: 'ellipse', x: x + 4, y: base - ph, w: 9, h: 3, color: PALETTE.leaf });
+    out.push({ kind: 'ellipse', x: x - 3, y: base - ph - 2, w: 8, h: 2.6, color: lighten(PALETTE.leaf, 0.15) });
+    out.push({ kind: 'ellipse', x: x + 1, y: base - ph - 4, w: 6, h: 2.2, color: darken(PALETTE.leaf, 0.1) });
   }
   return out;
 }
@@ -119,4 +133,34 @@ export function plantPrims(p: PlantDrawInput): Prim[] {
     case 'bamboo':
       return bamboo(p, r, base);
   }
+}
+
+export function primBounds(prims: Prim[]): { minX: number; minY: number; maxX: number; maxY: number } {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const add = (x: number, y: number, rx: number, ry: number) => {
+    minX = Math.min(minX, x - rx);
+    maxX = Math.max(maxX, x + rx);
+    minY = Math.min(minY, y - ry);
+    maxY = Math.max(maxY, y + ry);
+  };
+  for (const p of prims) {
+    if (p.kind === 'ellipse') add(p.x, p.y, p.w / 2, p.h / 2);
+    else if (p.kind === 'circle') add(p.x, p.y, p.r, p.r);
+    else for (let i = 0; i < p.points.length; i += 2) add(p.points[i]!, p.points[i + 1]!, p.width / 2, p.width / 2);
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+export function offsetPrims(prims: Prim[], dx: number, dy: number): Prim[] {
+  return prims.map((p) =>
+    p.kind === 'line' ? { ...p, points: p.points.map((v, i) => v + (i % 2 === 0 ? dx : dy)) } : { ...p, x: p.x + dx, y: p.y + dy },
+  );
+}
+
+export function scalePrims(prims: Prim[], k: number): Prim[] {
+  return prims.map((p) => {
+    if (p.kind === 'ellipse') return { ...p, x: p.x * k, y: p.y * k, w: p.w * k, h: p.h * k };
+    if (p.kind === 'circle') return { ...p, x: p.x * k, y: p.y * k, r: p.r * k };
+    return { ...p, points: p.points.map((v) => v * k), width: p.width * k };
+  });
 }

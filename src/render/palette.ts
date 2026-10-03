@@ -33,6 +33,10 @@ export const PALETTE = {
   orange: 0xd9773a,
   sand: 0xd8c48f,
   spriteTint: 0xe8e0d2,
+  dust: 0xb9b2a4,
+  pollen: 0xf3e6a0,
+  firefly: 0xfff3b0,
+  vein: 0x2f5a2c,
 } as const;
 
 const channels = (c: number) => [(c >> 16) & 255, (c >> 8) & 255, c & 255] as const;

@@ -3,7 +3,7 @@ import { SCRAP_KINDS } from '../../src/engine';
 import { LEVELS } from '../../src/levels';
 import { darken, lerpColor, lighten } from '../../src/render/palette';
 import { hasObjectShape, objectBlocks, objectTopHeight, OBJECTS, rotateBlock, type Block } from '../../src/render/objects/objectShapes';
-import { plantPrims, type PlantDrawInput, type Prim } from '../../src/render/plants/plantShapes';
+import { plantPrims, primBounds, offsetPrims, scalePrims, type PlantDrawInput, type Prim } from '../../src/render/plants/plantShapes';
 
 describe('palette', () => {
   it('lerps channels and clamps t', () => {
@@ -73,5 +73,36 @@ describe('plant shapes', () => {
         expect(json).not.toMatch(/null|NaN|Infinity/);
       }
     }
+  });
+});
+
+describe('richer plants', () => {
+  it('moss clumps have shadow, body and highlight tones', () => {
+    const colors = new Set(plantPrims(input({ stage: 2 })).map((p) => p.color));
+    expect(colors.size).toBeGreaterThanOrEqual(5);
+  });
+  it('vine leaves carry vein lines', () => {
+    const prims = plantPrims(input({ type: 'vine', stage: 3 }));
+    const stems = 4;
+    expect(prims.filter((p) => p.kind === 'line').length).toBeGreaterThan(stems);
+  });
+  it('bamboo has leaf tufts on every pole', () => {
+    const prims = plantPrims(input({ type: 'bamboo', stage: 5 }));
+    expect(prims.filter((p) => p.kind === 'ellipse').length).toBeGreaterThanOrEqual(9);
+  });
+});
+
+describe('prim geometry', () => {
+  const prims: Prim[] = [
+    { kind: 'ellipse', x: 0, y: 0, w: 10, h: 4, color: 1 },
+    { kind: 'circle', x: 20, y: -10, r: 3, color: 1 },
+    { kind: 'line', points: [-8, 5, -8, 12], width: 2, color: 1 },
+  ];
+  it('primBounds covers every primitive', () => {
+    expect(primBounds(prims)).toEqual({ minX: -9, minY: -13, maxX: 23, maxY: 13 });
+  });
+  it('offsetPrims and scalePrims transform every coordinate', () => {
+    expect(primBounds(offsetPrims(prims, 9, 13))).toEqual({ minX: 0, minY: 0, maxX: 32, maxY: 26 });
+    expect(primBounds(scalePrims(prims, 2))).toEqual({ minX: -18, minY: -26, maxX: 46, maxY: 26 });
   });
 });
