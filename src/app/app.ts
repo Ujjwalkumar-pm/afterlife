@@ -1,7 +1,7 @@
 import type { LevelData, Pos } from '../engine';
 import { PlayController } from '../game/controller';
 import type { AttachOptions } from '../render/scene/DioramaScene';
-import { loadSave, markCompleted, recordStars, writeSave, type SaveData, type Store } from '../save/save';
+import { defaultSave, loadSave, markCompleted, recordStars, writeSave, type SaveData, type Store } from '../save/save';
 import { Hud } from '../ui/hud';
 import { cuesFor } from '../audio/cues';
 import { planTutorial, Tutorial } from '../game/tutorial';
@@ -50,6 +50,10 @@ export class App {
   private nudge = false;
   private lastStars: 1 | 2 | 3 | null = null;
   private story: StoryPlayer | null = null;
+  private resetDialog: HTMLElement | null = null;
+  private readonly onResetKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') this.closeResetConfirm();
+  };
   private readonly onHowtoKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') this.closeHowTo();
   };
@@ -201,6 +205,7 @@ export class App {
   }
 
   private teardown(): void {
+    if (this.resetDialog) this.closeResetConfirm(false);
     this.story?.destroy();
     this.story = null;
     if (this.demoTimer) clearInterval(this.demoTimer);
@@ -248,6 +253,48 @@ export class App {
     }, this.options.demoIntervalMs);
   }
 
+  /** Settings → Reset game: an in-page confirmation, because erasing can't be undone. */
+  private openResetConfirm(): void {
+    if (this.resetDialog || this.screen !== 'settings') return;
+    const el = document.createElement('div');
+    el.className = 'reset-confirm';
+    el.setAttribute('role', 'alertdialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-labelledby', 'reset-title');
+    el.setAttribute('aria-describedby', 'reset-text');
+    el.innerHTML = `<div class="panel"><h2 id="reset-title">Reset the whole game?</h2><p id="reset-text">This erases all restored places, stars, hints and settings. The story and tutorial will play again. This can't be undone.</p><div class="actions"><button data-action="reset-confirm" class="danger">Erase everything</button><button data-action="reset-cancel" class="primary">Cancel</button></div></div>`;
+    this.root.appendChild(el);
+    this.resetDialog = el;
+    document.addEventListener('keydown', this.onResetKey);
+    el.querySelector<HTMLElement>('[data-action="reset-cancel"]')?.focus();
+  }
+
+  private closeResetConfirm(restoreFocus = true): void {
+    if (!this.resetDialog) return;
+    this.resetDialog.remove();
+    this.resetDialog = null;
+    document.removeEventListener('keydown', this.onResetKey);
+    if (restoreFocus) this.root.querySelector<HTMLElement>('[data-action="reset-ask"]')?.focus();
+  }
+
+  /** Erase everything: progress, stars, hints, story/tutorial flags and settings. */
+  private resetGame(): void {
+    this.closeResetConfirm(false);
+    this.save = defaultSave();
+    writeSave(this.store, this.save);
+    this.sound.setMuted(this.save.settings.muted);
+    this.sound.setVolume(this.save.settings.volume);
+    this.applyMotionClass();
+    this.show('title');
+    const toast = document.createElement('div');
+    toast.className = 'toast app-toast';
+    toast.setAttribute('role', 'status');
+    toast.textContent = 'Game reset. A fresh start.';
+    this.root.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+    this.root.querySelector<HTMLElement>('[data-nav="select"]')?.focus();
+  }
+
   /** The intro story. Seen once on the first Play (saved), replayable from the title. */
   private playStory(then: MenuScreen): void {
     this.teardown();
@@ -280,6 +327,10 @@ export class App {
   private onClick(e: Event): void {
     const el = e.target as HTMLElement;
     if (el.closest('[data-close-howto]')) return this.closeHowTo();
+    const act = el.closest<HTMLElement>('[data-action]')?.dataset.action;
+    if (act === 'reset-ask') return this.openResetConfirm();
+    if (act === 'reset-cancel') return this.closeResetConfirm();
+    if (act === 'reset-confirm') return this.resetGame();
     if (el.closest('[data-replay-tutorial]')) return this.startLevel(0, { tutorial: true });
     const nav = el.closest<HTMLElement>('[data-nav]');
     if (nav) {
@@ -447,7 +498,7 @@ export class App {
         return `<main class="screen select-screen"><h2>Choose a place</h2><p class="progress-note">${done} of ${this.levels.length} restored</p><ol class="level-grid">${cards}</ol>${back}</main>`;
       }
       case 'settings':
-        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label><button data-nav="howto">How to play</button>${back}</main>`;
+        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label><button data-nav="howto">How to play</button><button data-action="reset-ask" class="danger">Reset game</button>${back}</main>`;
       case 'howto':
         return this.howtoHtml(false);
       case 'credits':

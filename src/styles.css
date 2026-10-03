@@ -277,3 +277,14 @@ button:disabled { opacity: 0.35; filter: grayscale(1); }
 }
 .hud:has(.toast) .next-chip { display: none; }
 @media (max-width: 900px) { .tray [data-action='scrap'] .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
+
+/* Reset game */
+button.danger { background: rgba(168, 74, 60, 0.22); border-color: rgba(217, 83, 79, 0.55); color: #f6d6cf; }
+button.danger:hover:not(:disabled) { background: rgba(168, 74, 60, 0.4); }
+.reset-confirm { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; padding: 24px 16px; background: rgba(18, 20, 16, 0.6); pointer-events: auto; animation: fade-in 200ms ease-out; }
+.reset-confirm .panel { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: min(440px, 100%); padding: 24px 28px; border-radius: 24px; text-align: center; text-wrap: balance; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+.reset-confirm h2 { margin: 0; }
+.reset-confirm p { margin: 0; color: var(--muted); }
+.app-toast { z-index: 7; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 40px); }
+.reset-confirm .panel { background: rgba(30, 33, 27, 0.97); }
+.app-toast { white-space: nowrap; }

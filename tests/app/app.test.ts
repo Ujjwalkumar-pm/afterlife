@@ -4,7 +4,7 @@ import { App, type Stage } from '../../src/app/app';
 import { planTutorial } from '../../src/game/tutorial';
 import { starsFor } from '../../src/game/scoring';
 import { LEVELS } from '../../src/levels';
-import { SAVE_KEY, type Store } from '../../src/save/save';
+import { defaultSave, SAVE_KEY, type Store } from '../../src/save/save';
 
 const memoryStore = (initial: Record<string, string> = {}): Store & { data: Record<string, string> } => {
   const data = { ...initial };
@@ -639,5 +639,62 @@ describe('App v1.4 hints', () => {
     click('[data-action="menu"]');
     app.startLevel(0);
     expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 3 left');
+  });
+});
+
+describe('Reset game (Settings)', () => {
+  const full = JSON.stringify({ version: 1, completed: ['bus-stop', 'rooftop'], tutorialDone: true, storySeen: true, stars: { 'bus-stop': 3 }, hintsUsed: { 'petrol-station': 2 }, settings: { reducedMotion: true, muted: true, volume: 0.3 } });
+
+  it('asks first, in the page, and Cancel keeps everything', () => {
+    const store = memoryStore({ [SAVE_KEY]: full });
+    new App(root, stage, store, LEVELS, opts);
+    click('[data-nav="settings"]');
+    click('[data-action="reset-ask"]');
+    const dialog = root.querySelector('.reset-confirm')!;
+    expect(dialog.getAttribute('role')).toBe('alertdialog');
+    expect(dialog.textContent).toContain("This can't be undone");
+    expect(document.activeElement).toBe(root.querySelector('[data-action="reset-cancel"]'));
+    click('[data-action="reset-cancel"]');
+    expect(root.querySelector('.reset-confirm')).toBeNull();
+    expect(store.data[SAVE_KEY]).toBe(full);
+  });
+
+  it('Erase everything wipes progress, stars, hints, story, tutorial and settings, and returns to a fresh title', () => {
+    const store = memoryStore({ [SAVE_KEY]: full });
+    const { sound, calls } = fakeSound();
+    const app = new App(root, stage, store, LEVELS, opts, sound);
+    click('[data-nav="settings"]');
+    click('[data-action="reset-ask"]');
+    click('[data-action="reset-confirm"]');
+    expect(JSON.parse(store.data[SAVE_KEY]!)).toEqual(defaultSave());
+    expect(app.screen).toBe('title');
+    expect(app.reducedMotion).toBe(false);
+    expect(calls.muted.at(-1)).toBe(false);
+    expect(calls.volume.at(-1)).toBe(0.8);
+    expect(root.querySelector('.toast')!.textContent).toBe('Game reset. A fresh start.');
+    click('[data-nav="select"]');
+    expect(app.screen).toBe('story');
+    click('[data-story="skip"]');
+    const cards = root.querySelectorAll<HTMLButtonElement>('.level-card');
+    expect(cards[1]!.disabled).toBe(true);
+    expect(root.querySelector('.stars-mini')).toBeNull();
+  });
+
+  it('Esc cancels the confirmation', () => {
+    const store = memoryStore({ [SAVE_KEY]: full });
+    new App(root, stage, store, LEVELS, opts);
+    click('[data-nav="settings"]');
+    click('[data-action="reset-ask"]');
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(root.querySelector('.reset-confirm')).toBeNull();
+    expect(store.data[SAVE_KEY]).toBe(full);
+  });
+
+  it('still resets the current session when storage cannot be written', () => {
+    const app = new App(root, stage, null, LEVELS, opts);
+    click('[data-nav="settings"]');
+    click('[data-action="reset-ask"]');
+    click('[data-action="reset-confirm"]');
+    expect(app.screen).toBe('title');
   });
 });
