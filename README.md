@@ -2,7 +2,7 @@
 
 A calm isometric web game about nature reclaiming abandoned places. Plant seeds among the ruins, drop scrap to feed them, and watch moss, vines, flowers and bamboo take the scene back.
 
-> Play it: **[afterlifeme.vercel.app](https://afterlifeme.vercel.app)** · v1.5: 8 places, a short story intro, Pip the mossy robot, generative soundtrack, Kenney props.
+> Play it: **[afterlifeme.vercel.app](https://afterlifeme.vercel.app)** · v1.6: 8 places, a short story intro, Pip the mossy robot, generative soundtrack, Kenney props.
 
 ![Afterlife](public/hero.png)
 
@@ -20,6 +20,7 @@ A calm isometric web game about nature reclaiming abandoned places. Plant seeds 
 - **A 25-second story** before your first game (skippable, replayable from the title).
 - **Pip**, a mossy robot who points out hints, cheers big moves and celebrates each restored place.
 - **Stars, combos and milestones**, a guided first level, and How to Play.
+- **Celebrations:** every restored place vibrates the phone (Android), pops confetti, and awards a unique, shareable badge. Collect all 8 on the Badges screen.
 - **Reset game** in Settings erases everything for a fresh start (with a confirmation first).
 - **Accessibility:** works on phones, tablets and desktops, with keyboard and screen-reader support and a Reduce motion setting.
 
