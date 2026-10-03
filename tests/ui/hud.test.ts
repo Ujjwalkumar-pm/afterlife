@@ -6,7 +6,7 @@ import { ICONS } from '../../src/ui/icons';
 import { makeLevel } from '../engine/helpers';
 
 const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
-  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(), help: vi.fn(), skipTutorial: vi.fn(),
+  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(), help: vi.fn(), skipTutorial: vi.fn(), hint: vi.fn(),
 });
 const meta = { name: 'Bus <Stop>', hint: 'Place scrap near a seed.', hasNext: true, muted: false };
 const click = (el: Element | null) => (el as HTMLElement).click();
@@ -435,5 +435,30 @@ describe('Hud v1.3.1 polish', () => {
     const b = root.querySelector('[data-action="mute"]')!;
     expect(b.getAttribute('aria-label')).toBe('Mute');
     expect(b.getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('Hud hint button', () => {
+  const v = () => new PlayController(makeLevel({})).view;
+  const btn = () => root.querySelector<HTMLButtonElement>('[data-action="hint"]')!;
+  it('shows the hints left and calls the handler', () => {
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(v(), { ...meta, hintsLeft: 2, hintAvailable: true });
+    expect(btn().getAttribute('aria-label')).toBe('Hint, 2 left');
+    expect(btn().querySelector('.hint-count')!.textContent).toBe('2');
+    expect(btn().querySelector('svg')).not.toBeNull();
+    btn().click();
+    expect(h.hint).toHaveBeenCalledTimes(1);
+  });
+  it('is disabled with none left or when not available, and pulses on a nudge', () => {
+    const hud = new Hud(root, handlers());
+    hud.render(v(), { ...meta, hintsLeft: 0, hintAvailable: true });
+    expect(btn().disabled).toBe(true);
+    expect(btn().getAttribute('aria-label')).toBe('No hints left');
+    hud.render(v(), { ...meta, hintsLeft: 3, hintAvailable: false });
+    expect(btn().disabled).toBe(true);
+    hud.render(v(), { ...meta, hintsLeft: 3, hintAvailable: true, nudge: true });
+    expect(btn().classList.contains('nudge')).toBe(true);
   });
 });

@@ -17,7 +17,7 @@ function followHints(levelIndex: number): { overlay: string; bonusUsed: number; 
   return { overlay: c.view.overlay, bonusUsed: c.view.state.bonusUsed, moves };
 }
 
-describe('beginner who follows the hint', () => {
+describe('following the hint suggestions always leads to a win', () => {
   it.each(LEVELS.map((l, i) => [l.id, i] as const))('finishes %s', (_id, i) => {
     const r = followHints(i);
     expect(r.overlay, JSON.stringify(r)).toBe('restored');

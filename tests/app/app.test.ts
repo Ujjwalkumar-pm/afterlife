@@ -302,19 +302,6 @@ describe('App v1.2', () => {
     expect(app.controller!.view.selection).toEqual({ kind: 'seed', plant: 'moss' });
   });
 
-  it('hint is cleared on any change and recomputed after 3 s idle', () => {
-    vi.useFakeTimers();
-    const highlight = vi.fn();
-    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
-    app.startLevel(1);
-    highlight.mockClear();
-    vi.advanceTimersByTime(3000);
-    const tile = highlight.mock.calls.at(-1)![0];
-    expect(tile).toEqual(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
-    app.controller!.play({ type: 'seed', plant: 'moss', ...tile });
-    expect(highlight).toHaveBeenLastCalledWith(null);
-    vi.useRealTimers();
-  });
 
   it('saves stars on the win and shows them on the level card', () => {
     const store = memoryStore({ [SAVE_KEY]: done });
@@ -353,15 +340,6 @@ describe('App hint v1.2 fixes', () => {
     expect(highlight.mock.calls.filter((c) => c[0] !== null)).toEqual([]);
     vi.useRealTimers();
   });
-  it('the idle hint switches to a more useful item', () => {
-    vi.useFakeTimers();
-    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
-    app.startLevel(1);
-    app.controller!.select({ kind: 'scrap', slot: 0 }); // nothing planted yet: scrap is useless
-    vi.advanceTimersByTime(3100);
-    expect(app.controller!.view.selection?.kind).toBe('seed');
-    vi.useRealTimers();
-  });
   it('rests text explains there is nothing more to do', () => {
     const c = new App(root, stage, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
     expect(c).toBeTruthy();
@@ -379,18 +357,6 @@ describe('App v1.2.1 polish', () => {
     highlight.mockClear();
     vi.advanceTimersByTime(3500);
     expect(highlight.mock.calls.filter((c) => c[0] !== null)).toEqual([]);
-    vi.useRealTimers();
-  });
-  it('hovering (preview only) does not cancel a shown hint', () => {
-    vi.useFakeTimers();
-    const highlight = vi.fn();
-    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
-    app.startLevel(1);
-    vi.advanceTimersByTime(3100);
-    const shown = highlight.mock.calls.at(-1)![0];
-    expect(shown).not.toBeNull();
-    app.controller!.hover({ x: 0, y: 0 });
-    expect(highlight.mock.calls.at(-1)![0]).toEqual(shown);
     vi.useRealTimers();
   });
   it('level cards announce their stars in the button label', () => {
@@ -469,15 +435,6 @@ describe('App v1.3 story and Pip', () => {
     expect(root.querySelector('.pip-line')!.textContent).toBe('We did it! Look at it bloom.');
   });
 
-  it('Pip points at the idle hint', () => {
-    vi.useFakeTimers();
-    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
-    app.startLevel(1);
-    vi.advanceTimersByTime(3100);
-    expect(root.querySelector('.pip-line')!.textContent).toBe('Try the glowing spot!');
-    expect(root.querySelector('.pip')!.className).toBe('pip mood-point');
-    vi.useRealTimers();
-  });
 
   it('there is one Pip per level, removed when leaving', () => {
     const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
@@ -503,19 +460,6 @@ describe('App v1.3 story and Pip', () => {
     expect(root.querySelector('[data-level="2"] .card-icon svg')).not.toBeNull();
     expect(root.querySelector('[data-level="1"] .card-icon')).toBeNull();
   });
-  it('Pip says the hint once per idle spell, not again when the hint switches the item', () => {
-    vi.useFakeTimers();
-    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
-    app.startLevel(1);
-    app.controller!.select({ kind: 'scrap', slot: 0 }); // the hint will switch back to a seed
-    vi.advanceTimersByTime(3100);
-    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(false);
-    vi.advanceTimersByTime(2600);
-    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(true);
-    vi.advanceTimersByTime(1500);
-    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(true);
-    vi.useRealTimers();
-  });
   it('after the story, focus lands on the new screen (not lost on the page)', () => {
     new App(root, stage, memoryStore(), LEVELS, opts);
     click('[data-nav="select"]');
@@ -530,5 +474,99 @@ describe('App v1.3 story and Pip', () => {
     new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts);
     click('[data-nav="howto"]');
     expect(root.querySelector('.howto-list')!.textContent).toContain('Swipe the board sideways to turn it');
+  });
+});
+
+describe('App v1.4 hints', () => {
+  const seenDone = JSON.stringify({ version: 1, completed: [], tutorialDone: true, storySeen: true, settings: {} });
+  const hintBtn = () => root.querySelector<HTMLButtonElement>('[data-action="hint"]')!;
+  const line = () => root.querySelector<HTMLElement>('.pip-line')!;
+
+  it('the Hint button shows the best move, switches the item and counts down from 3', () => {
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 3 left');
+    app.controller!.select({ kind: 'scrap', slot: 0 });
+    click('[data-action="hint"]');
+    expect(app.controller!.view.selection?.kind).toBe('seed');
+    expect(highlight).toHaveBeenLastCalledWith(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
+    expect(line().textContent).toBe('Try the glowing spot!');
+  });
+
+  it('pressing Hint again while the same hint is showing costs nothing', () => {
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    click('[data-action="hint"]');
+    click('[data-action="hint"]');
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
+  });
+
+  it('is locked after 3 hints, and undo does not give hints back', () => {
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    for (let i = 0; i < 3; i++) {
+      click('[data-action="hint"]');
+      const tile = highlight.mock.calls.at(-1)![0];
+      app.controller!.tap(tile, 'touch');
+    }
+    click('[data-action="undo"]');
+    expect(hintBtn().disabled).toBe(true);
+    expect(hintBtn().getAttribute('aria-label')).toBe('No hints left');
+  });
+
+  it('hints cap the stars, the win panel says so, and a restart gives the hints back', () => {
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const app = new App(root, stage, store, LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="hint"]');
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    expect(JSON.parse(store.data[SAVE_KEY]!).stars['bus-stop']).toBeLessThanOrEqual(2);
+    expect(root.querySelector('.overlay .hints-used')!.textContent).toBe('Hints used: 1 of 3');
+    click('[data-action="keep"]');
+    click('[data-action="restart"]');
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 3 left');
+  });
+
+  it('a new place starts with 3 hints', () => {
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    click('[data-action="hint"]');
+    app.startLevel(2);
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 3 left');
+  });
+
+  it('is not offered during the guided tutorial (its highlights are free)', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts);
+    app.startLevel(0);
+    expect(hintBtn().disabled).toBe(true);
+  });
+
+  it('after 8 s idle Pip suggests the bulb and it pulses, revealing nothing and costing nothing', () => {
+    vi.useFakeTimers();
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    highlight.mockClear();
+    vi.advanceTimersByTime(8100);
+    expect(line().textContent).toBe('Stuck? Tap the bulb for a hint.');
+    expect(hintBtn().classList.contains('nudge')).toBe(true);
+    expect(highlight.mock.calls.filter((c) => c[0] !== null)).toEqual([]);
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 3 left');
+    vi.useRealTimers();
+  });
+
+  it('a shown hint survives hovering, and a real move clears it', () => {
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    click('[data-action="hint"]');
+    const tile = highlight.mock.calls.at(-1)![0];
+    app.controller!.hover({ x: 0, y: 0 });
+    expect(highlight.mock.calls.at(-1)![0]).toEqual(tile);
+    app.controller!.tap(tile, 'touch');
+    expect(highlight).toHaveBeenLastCalledWith(null);
   });
 });

@@ -16,6 +16,7 @@ export interface HudHandlers {
   toggleMute(): void;
   help(): void;
   skipTutorial(): void;
+  hint(): void;
 }
 
 export interface HudMeta {
@@ -25,6 +26,14 @@ export interface HudMeta {
   muted: boolean;
   tutorial?: CoachStep | null;
   stars?: 1 | 2 | 3 | null;
+  /** Hints left in this place (undefined hides the Hint button). */
+  hintsLeft?: number;
+  /** False during the tutorial or while a panel is open. */
+  hintAvailable?: boolean;
+  /** Idle nudge: the bulb pulses. */
+  nudge?: boolean;
+  /** Hints used, shown on the win panel. */
+  hintsUsed?: number;
 }
 
 const LABEL: Record<PlantType, string> = { moss: 'Moss', vine: 'Vine', flower: 'Flower', bamboo: 'Bamboo' };
@@ -176,6 +185,8 @@ export class Hud {
         return h.help();
       case 'skip-tutorial':
         return h.skipTutorial();
+      case 'hint':
+        return h.hint();
     }
   }
 
@@ -211,6 +222,7 @@ export class Hud {
 ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coach.step} of ${coach.total}</span><p>${esc(coach.text)}</p><button data-action="skip-tutorial">Skip tutorial</button></div>` : `<p class="hint">${esc(m.hint)}</p>`}
 <div class="hud-tools" role="group" aria-label="Tools">
   <button data-action="help" aria-label="How to play">${ICONS.help}</button>
+  ${m.hintsLeft === undefined ? '' : `<button data-action="hint" class="${m.nudge && m.hintsLeft > 0 && m.hintAvailable ? 'nudge' : ''}" aria-label="${m.hintsLeft > 0 ? `Hint, ${m.hintsLeft} left` : 'No hints left'}" ${m.hintsLeft > 0 && m.hintAvailable ? '' : 'disabled'}>${ICONS.bulb}<span class="hint-count" aria-hidden="true">${m.hintsLeft}</span></button>`}
   <span class="sep"></span>
   <button data-action="undo" aria-label="Undo" ${v.canUndo ? '' : 'disabled'}>${ICONS.undo}</button>
   <button data-action="restart" aria-label="Restart level">${ICONS.restart}</button>
@@ -231,7 +243,7 @@ ${this.overlay(v, m)}`;
     }
     if (v.overlay === 'restored') {
       const primary = m.hasNext ? '<button data-action="next" class="primary">Next place</button>' : '<button data-action="menu" class="primary">Back to places</button>';
-      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p><div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p>${m.hintsUsed ? `<p class="hints-used">Hints used: ${m.hintsUsed} of 3</p>` : ''}<div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
     }
     if (v.overlay === 'rests') {
       return `<div class="overlay" role="dialog" aria-label="The garden rests"><div class="panel"><h2>The garden rests…</h2><p>Nothing more can grow here. Undo a few moves, or restart.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div></div>`;

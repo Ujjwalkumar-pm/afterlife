@@ -6,7 +6,7 @@ import { Hud } from '../ui/hud';
 import { cuesFor } from '../audio/cues';
 import { planTutorial, Tutorial } from '../game/tutorial';
 import { suggestMove } from '../game/hints';
-import { milestonesCrossed, starsFor } from '../game/scoring';
+import { MAX_HINTS, milestonesCrossed, starsFor } from '../game/scoring';
 import { ICONS } from '../ui/icons';
 import { silentSound, type Sound } from '../audio/sound';
 import { levelStatuses, type LevelStatus } from './progress';
@@ -46,6 +46,8 @@ export class App {
   private hintShown = false;
   /** True while the hint itself switches the tray item, so that change doesn't restart the idle timer. */
   private hintSelecting = false;
+  private hintsUsed = 0;
+  private nudge = false;
   private lastStars: 1 | 2 | 3 | null = null;
   private story: StoryPlayer | null = null;
   private readonly onHowtoKey = (e: KeyboardEvent) => {
@@ -109,7 +111,10 @@ export class App {
     const hud = new Hud(this.root, {
       select: (sel) => ctrl.select(sel),
       undo: () => ctrl.undo(),
-      restart: () => ctrl.restart(),
+      restart: () => {
+        this.hintsUsed = 0;
+        ctrl.restart();
+      },
       rotate: (dir) => ctrl.rotate(dir),
       menu: () => this.show('select'),
       next: () => this.startLevel(this.levelIndex + 1),
@@ -117,9 +122,10 @@ export class App {
       toggleMute: () => this.toggleMute(),
       help: () => this.openHowTo(),
       skipTutorial: () => this.finishTutorial(),
+      hint: () => this.useHint(),
     });
     this.hud = hud;
-    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null });
+    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null, hintsLeft: MAX_HINTS - this.hintsUsed, hintAvailable: !this.tutorial && ctrl.view.overlay === 'none', nudge: this.nudge, hintsUsed: this.hintsUsed });
     let lastOverlay = ctrl.view.overlay;
     let lastProgress = ctrl.view.progress;
     let hintState = ctrl.view.state;
@@ -128,7 +134,7 @@ export class App {
     this.unsubscribe = ctrl.onChange((view, events) => {
       if (events.some((e) => e.type === 'won')) {
         this.save = markCompleted(this.save, level.id);
-        this.lastStars = starsFor(level, view.state);
+        this.lastStars = starsFor(level, view.state, this.hintsUsed);
         this.save = recordStars(this.save, level.id, this.lastStars);
         writeSave(this.store, this.save);
       }
@@ -203,6 +209,8 @@ export class App {
     if (this.hintTimer) clearTimeout(this.hintTimer);
     this.hintTimer = null;
     this.hintShown = false;
+    this.hintsUsed = 0;
+    this.nudge = false;
     this.lastStars = null;
     this.stage.highlight?.(null);
     this.controller = null;
@@ -276,32 +284,54 @@ export class App {
     if (card && !card.disabled) this.startLevel(Number(card.dataset.level));
   }
 
+  /** Any real change hides a shown hint and the nudge, then re-arms the idle nudge (8 s). */
   private scheduleHint(): void {
     if (this.hintTimer) clearTimeout(this.hintTimer);
     if (this.hintShown) {
       this.hintShown = false;
       this.stage.highlight?.(this.tutorial?.highlight ?? null);
     }
+    if (this.nudge) {
+      this.nudge = false;
+      this.renderHud?.();
+    }
     const ctrl = this.controller;
     if (!ctrl) return;
     this.hintTimer = setTimeout(() => {
       this.hintTimer = null;
-      // The tutorial does its own pointing; the hint only helps once it is over.
-      if (this.controller !== ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none') return;
-      const move = suggestMove(ctrl.view.state, ctrl.view.selection);
-      if (!move) return;
-      if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) {
-        this.hintSelecting = true;
-        try {
-          ctrl.select(move.selection);
-        } finally {
-          this.hintSelecting = false;
-        }
+      // A nudge only points at the bulb: it reveals nothing and costs nothing.
+      if (this.controller !== ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none' || this.hintsUsed >= MAX_HINTS) return;
+      this.nudge = true;
+      this.renderHud?.();
+      this.hud?.setPip({ mood: 'point', line: 'Stuck? Tap the bulb for a hint.' });
+    }, 8000);
+  }
+
+  /** The Hint button: shows the best move. 3 per place; each one lowers the most stars you can get. */
+  private useHint(): void {
+    const ctrl = this.controller;
+    if (!ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none' || this.hintsUsed >= MAX_HINTS) return;
+    const say = pipFor({ newOverlay: 'none', tutorial: false, events: [], milestone: false, hint: true });
+    if (this.hintShown) {
+      this.hud?.setPip(say); // the same hint is still on screen: no charge
+      return;
+    }
+    const move = suggestMove(ctrl.view.state, ctrl.view.selection);
+    if (!move) return;
+    this.hintsUsed += 1;
+    this.nudge = false;
+    if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) {
+      this.hintSelecting = true;
+      try {
+        ctrl.select(move.selection);
+      } finally {
+        this.hintSelecting = false;
       }
-      this.hintShown = true;
-      this.stage.highlight?.(move.tile);
-      this.hud?.setPip(pipFor({ newOverlay: 'none', tutorial: false, events: [], milestone: false, hint: true }));
-    }, 3000);
+    }
+    this.hintShown = true;
+    this.stage.highlight?.(move.tile);
+    this.renderHud?.();
+    this.hud?.setPip(say);
   }
 
   private applyMotionClass(): void {

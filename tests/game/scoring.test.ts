@@ -49,3 +49,27 @@ describe('milestonesCrossed', () => {
     expect(milestonesCrossed(0.8, 0.2)).toEqual([]);
   });
 });
+
+describe('starsFor with hints', () => {
+  const level = makeLevel({ batches: [['tyre', 'tyre'], ['tyre', 'tyre']] });
+  const won = (over: { tray: ('tyre')[]; batches: never[]; bonusUsed?: number }) => {
+    const s = makeState({ batches: level.batches });
+    s.tray = over.tray;
+    s.batches = over.batches;
+    s.bonusUsed = over.bonusUsed ?? 0;
+    return s;
+  };
+  it('no hints: unchanged', () => {
+    expect(starsFor(level, won({ tray: ['tyre'], batches: [] }), 0)).toBe(3);
+  });
+  it('one hint caps at 2 stars', () => {
+    expect(starsFor(level, won({ tray: ['tyre'], batches: [] }), 1)).toBe(2);
+  });
+  it('two or three hints cap at 1 star', () => {
+    expect(starsFor(level, won({ tray: ['tyre'], batches: [] }), 2)).toBe(1);
+    expect(starsFor(level, won({ tray: [], batches: [] }), 3)).toBe(1);
+  });
+  it('never raises a lower result', () => {
+    expect(starsFor(level, won({ tray: [], batches: [], bonusUsed: 1 }), 1)).toBe(1);
+  });
+});
