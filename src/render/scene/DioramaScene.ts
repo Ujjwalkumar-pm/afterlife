@@ -381,6 +381,7 @@ export class DioramaScene extends Phaser.Scene {
   }
 
   private drawHighlight(): void {
+    if (!this.ready) return; // called before create(): drawn once the scene exists
     const g = this.highlightG.clear();
     if (!this.highlight || !this.ctrl) return;
     const c = toScreen(this.isoOf(this.ctrl.view), this.highlight);
