@@ -81,11 +81,18 @@ describe('placeScrap', () => {
     expect(events).toContainEqual({ type: 'newBatch', tray: ['can', 'cone'] });
   });
 
-  it('emits stuck when the last scrap is used without reaching the target, then rejects further scrap', () => {
+  it('when the last scrap is used without winning, a bonus crate becomes available', () => {
     const s = makeState({ batches: [['tyre']] });
     const { state, events } = play(s, { type: 'scrap', slot: 0, x: 0, y: 0 });
-    expect(events.at(-1)).toEqual({ type: 'stuck' });
+    expect(events.some((e) => e.type === 'stuck')).toBe(false);
     expect(placeScrap(state, 0, at(1, 1))).toEqual({ ok: false, reason: 'no scrap in slot 0' });
+    const b = applyMove(state, { type: 'bonus' });
+    expect(b.ok).toBe(true);
+    if (!b.ok) return;
+    expect(b.state.tray).toEqual(['crate']);
+    expect(b.state.bonusUsed).toBe(1);
+    expect(b.events).toEqual([{ type: 'bonus' }]);
+    expect(applyMove(b.state, { type: 'bonus' })).toEqual({ ok: false, reason: 'bonus not available' });
   });
 });
 
@@ -157,5 +164,13 @@ describe('stuck when scrap has nowhere to go', () => {
     const s = makeState({ width: 2, height: 1, ground: ['..'], seeds: { moss: 2 }, batches: [['tyre']] });
     const { events } = play(s, { type: 'seed', plant: 'moss', x: 0, y: 0 }, { type: 'seed', plant: 'moss', x: 1, y: 0 });
     expect(events.at(-1)).toEqual({ type: 'stuck' });
+  });
+});
+
+describe('bonus', () => {
+  it('starts at zero and is rejected while scrap remains', () => {
+    const s = makeState();
+    expect(s.bonusUsed).toBe(0);
+    expect(applyMove(s, { type: 'bonus' })).toEqual({ ok: false, reason: 'bonus not available' });
   });
 });

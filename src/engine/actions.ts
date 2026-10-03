@@ -1,7 +1,7 @@
 import { PLANT_TYPES, PLANTS, RADIUS, SCRAP } from './catalog';
 import { cloneState, tileAt } from './grid';
 import { growAround } from './growth';
-import { coverage, isStuck } from './queries';
+import { canBonus, coverage, isStuck } from './queries';
 import type { ActionResult, GameEvent, GameState, Move, PlantType, Pos, Tile } from './types';
 
 const fail = (reason: string): ActionResult => ({ ok: false, reason });
@@ -68,16 +68,25 @@ export function harvest(s: GameState, p: Pos): ActionResult {
   return finish(s, next, [{ type: 'harvested', pos: p, seed }]);
 }
 
+export function grantBonus(s: GameState): ActionResult {
+  if (!canBonus(s)) return fail('bonus not available');
+  const next = cloneState(s);
+  next.tray = ['crate'];
+  next.bonusUsed += 1;
+  return finish(s, next, [{ type: 'bonus' }]);
+}
+
 export function applyMove(s: GameState, move: Move): ActionResult {
   if (typeof move !== 'object' || move === null) return fail('unknown move');
-  const p = { x: move.x, y: move.y };
   switch (move.type) {
     case 'seed':
-      return placeSeed(s, move.plant, p);
+      return placeSeed(s, move.plant, { x: move.x, y: move.y });
     case 'scrap':
-      return placeScrap(s, move.slot, p);
+      return placeScrap(s, move.slot, { x: move.x, y: move.y });
     case 'harvest':
-      return harvest(s, p);
+      return harvest(s, { x: move.x, y: move.y });
+    case 'bonus':
+      return grantBonus(s);
     default:
       return fail('unknown move');
   }

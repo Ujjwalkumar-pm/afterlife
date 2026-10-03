@@ -83,5 +83,6 @@ export function createInitialState(level: LevelData): GameState {
     rng: level.rngSeed >>> 0,
     nextPlantId: 1,
     won: false,
+    bonusUsed: 0,
   };
 }

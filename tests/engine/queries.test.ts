@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cellStatus, coverage, isStuck, previewScrap } from '../../src/engine/queries';
+import { canBonus, cellStatus, coverage, hasFreeTile, isStuck, previewScrap } from '../../src/engine/queries';
 import { makeState, putObject, putPlant } from './helpers';
 
 describe('coverage', () => {
@@ -30,16 +30,35 @@ describe('cellStatus', () => {
   });
 });
 
-describe('isStuck', () => {
-  it('is true only when not won and no scrap remains', () => {
+describe('isStuck / canBonus', () => {
+  it('is not stuck when scrap simply ran out (a bonus is available instead)', () => {
     const s = makeState();
-    expect(isStuck(s)).toBe(false);
     s.tray = [];
+    expect(isStuck(s)).toBe(false);
+    expect(canBonus(s)).toBe(true);
+  });
+  it('is stuck only when no tile is free', () => {
+    const s = makeState({ width: 2, height: 1, ground: ['..'] });
+    putPlant(s, 0, 0, 'moss', 0);
+    putPlant(s, 1, 0, 'moss', 0);
+    expect(hasFreeTile(s)).toBe(false);
     expect(isStuck(s)).toBe(true);
     s.won = true;
     expect(isStuck(s)).toBe(false);
   });
+  it('canBonus is false without a free tile, while scrap remains, or after winning', () => {
+    const full = makeState({ width: 1, height: 1, ground: ['.'] });
+    putPlant(full, 0, 0, 'moss', 0);
+    full.tray = [];
+    expect(canBonus(full)).toBe(false);
+    expect(canBonus(makeState())).toBe(false);
+    const won = makeState();
+    won.tray = [];
+    won.won = true;
+    expect(canBonus(won)).toBe(false);
+  });
 });
+
 
 describe('previewScrap', () => {
   it('lists plant cells within the radius of the slot\'s scrap', () => {

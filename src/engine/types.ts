@@ -45,12 +45,14 @@ export interface GameState {
   rng: number;
   nextPlantId: number;
   won: boolean;
+  bonusUsed: number;
 }
 
 export type Move =
   | { type: 'seed'; plant: PlantType; x: number; y: number }
   | { type: 'scrap'; slot: number; x: number; y: number }
-  | { type: 'harvest'; x: number; y: number };
+  | { type: 'harvest'; x: number; y: number }
+  | { type: 'bonus' };
 
 export type GameEvent =
   | { type: 'placedSeed'; pos: Pos; plant: PlantType }
@@ -62,7 +64,8 @@ export type GameEvent =
   | { type: 'harvested'; pos: Pos; seed: PlantType }
   | { type: 'newBatch'; tray: ScrapKind[] }
   | { type: 'won' }
-  | { type: 'stuck' };
+  | { type: 'stuck' }
+  | { type: 'bonus' };
 
 export type ActionResult =
   | { ok: true; state: GameState; events: GameEvent[] }
