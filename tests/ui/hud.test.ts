@@ -6,7 +6,7 @@ import { ICONS } from '../../src/ui/icons';
 import { makeLevel } from '../engine/helpers';
 
 const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
-  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(), help: vi.fn(), skipTutorial: vi.fn(), hint: vi.fn(),
+  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(), help: vi.fn(), skipTutorial: vi.fn(), hint: vi.fn(), shareBadge: vi.fn(),
 });
 const meta = { name: 'Bus <Stop>', hint: 'Place scrap near a seed.', hasNext: true, muted: false };
 const click = (el: Element | null) => (el as HTMLElement).click();

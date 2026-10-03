@@ -656,7 +656,7 @@ describe('Reset game (Settings)', () => {
     expect(document.activeElement).toBe(root.querySelector('[data-action="reset-cancel"]'));
     click('[data-action="reset-cancel"]');
     expect(root.querySelector('.reset-confirm')).toBeNull();
-    expect(store.data[SAVE_KEY]).toBe(full);
+    expect(JSON.parse(store.data[SAVE_KEY]!)).toMatchObject({ completed: ['bus-stop', 'rooftop'], stars: { 'bus-stop': 3 }, hintsUsed: { 'petrol-station': 2 } });
   });
 
   it('Erase everything wipes progress, stars, hints, story, tutorial and settings, and returns to a fresh title', () => {
@@ -687,7 +687,7 @@ describe('Reset game (Settings)', () => {
     click('[data-action="reset-ask"]');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(root.querySelector('.reset-confirm')).toBeNull();
-    expect(store.data[SAVE_KEY]).toBe(full);
+    expect(JSON.parse(store.data[SAVE_KEY]!)).toMatchObject({ completed: ['bus-stop', 'rooftop'], stars: { 'bus-stop': 3 }, hintsUsed: { 'petrol-station': 2 } });
   });
 
   it('still resets the current session when storage cannot be written', () => {
@@ -696,5 +696,91 @@ describe('Reset game (Settings)', () => {
     click('[data-action="reset-ask"]');
     click('[data-action="reset-confirm"]');
     expect(app.screen).toBe('title');
+  });
+});
+
+describe('v1.6 celebrations and badges', () => {
+  const seenDone = JSON.stringify({ version: 1, completed: [], tutorialDone: true, storySeen: true, settings: {} });
+  const win = (app: App, i = 0) => { for (const m of LEVELS[i]!.solution) app.controller!.play(m); };
+  const make = (store: ReturnType<typeof memoryStore>, extra: Partial<typeof opts & Record<string, unknown>> = {}) => {
+    const haptics = vi.fn();
+    const confetti = vi.fn();
+    const shareBadge = vi.fn(async () => 'saved' as const);
+    const app = new App(root, stage, store, LEVELS, { ...opts, haptics, confetti, shareBadge, ...extra });
+    return { app, haptics, confetti, shareBadge };
+  };
+
+  it('a win vibrates and pops confetti', () => {
+    const { app, haptics, confetti } = make(memoryStore({ [SAVE_KEY]: seenDone }));
+    app.startLevel(0);
+    win(app);
+    expect(haptics).toHaveBeenCalledWith([60, 40, 60, 40, 140]);
+    expect(haptics).toHaveBeenCalledTimes(1);
+    expect(confetti).toHaveBeenCalledWith(false);
+  });
+
+  it('no vibration when switched off in Settings, and the setting is saved', () => {
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const { app, haptics } = make(store);
+    click('[data-nav="settings"]');
+    const box = root.querySelector('[data-setting="vibration"]') as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(JSON.parse(store.data[SAVE_KEY]!).settings.vibration).toBe(false);
+    app.startLevel(0);
+    win(app);
+    expect(haptics).not.toHaveBeenCalled();
+  });
+
+  it('with Reduce motion the confetti is told to stay still', () => {
+    const { app, confetti } = make(memoryStore({ [SAVE_KEY]: seenDone }), { prefersReducedMotion: true });
+    app.startLevel(0);
+    win(app);
+    expect(confetti).toHaveBeenCalledWith(true);
+  });
+
+  it('the win panel shows the earned badge, saves its date, and shares it', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 3, 12));
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const { app, shareBadge } = make(store);
+    app.startLevel(1);
+    win(app, 1);
+    const panel = root.querySelector('.overlay .badge-earned')!;
+    expect(panel.textContent).toContain('You earned the Rooftop badge');
+    expect(panel.querySelector('svg.badge-svg')!.getAttribute('aria-label')).toMatch(/^Rooftop badge, [123] of 3 stars, restored 3 Oct 2026$/);
+    expect(JSON.parse(store.data[SAVE_KEY]!).badges).toEqual({ rooftop: { date: '2026-10-03' } });
+    click('[data-action="share-badge"]');
+    expect(shareBadge).toHaveBeenCalledWith(expect.objectContaining({ id: 'rooftop', name: 'Rooftop', date: '2026-10-03' }));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(root.querySelector('.app-toast')!.textContent).toBe('Badge saved as an image');
+    vi.useRealTimers();
+  });
+
+  it('the Badges screen shows all 8: earned ones to share, the rest locked', () => {
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, storySeen: true, stars: { 'bus-stop': 3 }, badges: { 'bus-stop': { date: '2026-10-02' } }, settings: {} });
+    const { shareBadge } = make(memoryStore({ [SAVE_KEY]: saved }));
+    click('[data-nav="badges"]');
+    const cards = root.querySelectorAll('.badge-card');
+    expect(cards).toHaveLength(8);
+    expect(root.querySelector('.badges-screen .progress-note')!.textContent).toBe('1 of 8 earned');
+    expect(cards[0]!.querySelector('svg.badge-svg:not(.locked)')).not.toBeNull();
+    expect(cards[1]!.querySelector('svg.badge-svg.locked')).not.toBeNull();
+    expect(cards[1]!.textContent).toContain('Restore Rooftop to earn');
+    expect(cards[1]!.querySelector('button')).toBeNull();
+    (cards[0]!.querySelector('[data-share-badge]') as HTMLElement).click();
+    expect(shareBadge).toHaveBeenCalledWith({ id: 'bus-stop', name: 'Bus Stop', stars: 3, date: '2026-10-02' });
+  });
+
+  it('an earlier restore without a saved date still gets a badge, dated today, on the Badges screen', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 4, 9));
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, storySeen: true, stars: { 'bus-stop': 2 }, settings: {} });
+    const store = memoryStore({ [SAVE_KEY]: saved });
+    make(store);
+    expect(JSON.parse(store.data[SAVE_KEY]!).badges).toEqual({ 'bus-stop': { date: '2026-10-04' } });
+    vi.useRealTimers();
   });
 });
