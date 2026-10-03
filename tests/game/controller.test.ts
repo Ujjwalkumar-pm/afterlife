@@ -62,14 +62,12 @@ describe('tapping', () => {
     expect(events[0]).toEqual({ type: 'placedSeed', pos: at(1, 1), plant: 'moss' });
   });
 
-  it('touch needs a preview tap then a confirming tap on the same tile', () => {
+  it('touch places in one tap, and a second tap on the same tile does not place again', () => {
     const c = new PlayController(makeLevel());
     c.select({ kind: 'seed', plant: 'moss' });
+    expect(c.tap(at(1, 1), 'touch')).toHaveLength(1);
     expect(c.tap(at(1, 1), 'touch')).toEqual([]);
-    expect(c.view.preview?.tile).toEqual(at(1, 1));
-    expect(c.tap(at(2, 2), 'touch')).toEqual([]);
-    expect(c.view.preview?.tile).toEqual(at(2, 2));
-    expect(c.tap(at(2, 2), 'touch')).toHaveLength(1);
+    expect(c.view.state.seeds.moss).toBe(4);
   });
 
   it('harvests a bloom with or without a selection', () => {
@@ -106,7 +104,8 @@ describe('tapping', () => {
     expect(c.view.state.tray).toEqual(['cone']);
     expect(c.view.selection).toEqual({ kind: 'scrap', slot: 0 });
     c.tap(at(2, 0), 'mouse');
-    expect(c.view.selection).toBeNull();
+    expect(c.view.state.tray).toEqual(['crate']);
+    expect(c.view.selection).toEqual({ kind: 'scrap', slot: 0 });
   });
 });
 
@@ -124,20 +123,22 @@ describe('overlays', () => {
     expect(c.view.overlay).toBe('none');
   });
 
-  it('opens "rests" when stuck, and undo closes it', () => {
-    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
-    c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
+
+  it('opens "rests" when no tile is free, and undo closes it', () => {
+    const c = new PlayController(makeLevel({ width: 2, height: 1, ground: ['..'], seeds: { moss: 2 }, batches: [['tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'seed', plant: 'moss', x: 1, y: 0 });
     expect(c.view.overlay).toBe('rests');
     c.undo();
     expect(c.view.overlay).toBe('none');
   });
 
   it('ignores taps while an overlay is open', () => {
-    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
-    c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
-    c.select({ kind: 'seed', plant: 'moss' });
-    expect(c.tap(at(3, 3), 'mouse')).toEqual([]);
-    expect(c.view.state.tiles[18]!.plant).toBeNull();
+    const c = new PlayController(makeLevel({ width: 2, height: 1, ground: ['..'], seeds: { moss: 2 }, batches: [['tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'seed', plant: 'moss', x: 1, y: 0 });
+    c.select({ kind: 'scrap', slot: 0 });
+    expect(c.tap(at(0, 0), 'mouse')).toEqual([]);
   });
 
   it('restart resets state, selection and overlay', () => {
@@ -189,5 +190,43 @@ describe('rotation and preview', () => {
     expect(c.view.preview).not.toBeNull();
     c.rotate(1);
     expect(c.view.preview).toBeNull();
+  });
+});
+
+describe('v1.2 assist and bonus', () => {
+  it('assist preselects the first seed and auto-switches when it runs out', () => {
+    const c = new PlayController(makeLevel({ seeds: { moss: 1, vine: 1 }, batches: [['tyre']] }), { assist: true });
+    expect(c.view.selection).toEqual({ kind: 'seed', plant: 'moss' });
+    c.tap(at(0, 0), 'touch');
+    expect(c.view.selection).toEqual({ kind: 'seed', plant: 'vine' });
+    c.tap(at(1, 0), 'touch');
+    expect(c.view.selection).toEqual({ kind: 'scrap', slot: 0 });
+    c.restart();
+    expect(c.view.selection).toEqual({ kind: 'seed', plant: 'moss' });
+  });
+
+  it('auto-grants a bonus crate when scrap runs out before winning', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
+    const events = c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
+    expect(events.at(-1)).toEqual({ type: 'bonus' });
+    expect(c.view.state.tray).toEqual(['crate']);
+    expect(c.view.state.bonusUsed).toBe(1);
+    expect(c.view.overlay).toBe('none');
+  });
+
+  it('undo after an automatic bonus reverts the move and the bonus together', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
+    c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
+    c.undo();
+    expect(c.view.state.tray).toEqual(['tyre']);
+    expect(c.view.state.bonusUsed).toBe(0);
+    expect(c.view.canUndo).toBe(false);
+  });
+
+  it('full board with scrap left still rests and never loops bonuses', () => {
+    const c = new PlayController(makeLevel({ width: 1, height: 1, ground: ['.'], seeds: { moss: 1 }, batches: [['tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    expect(c.view.overlay).toBe('rests');
+    expect(c.view.state.bonusUsed).toBe(0);
   });
 });

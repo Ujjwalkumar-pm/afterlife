@@ -1,6 +1,8 @@
 import {
+  canBonus,
   coverage,
   isStuck,
+  PLANT_TYPES,
   placeScrap,
   placeSeed,
   previewScrap,
@@ -36,6 +38,10 @@ export interface View {
   progress: number;
 }
 type Listener = (view: View, events: GameEvent[]) => void;
+export interface ControllerOptions {
+  /** Preselect the first available item and switch automatically when it runs out (v1.2). */
+  assist?: boolean;
+}
 
 const samePos = (a: Pos, b: Pos) => a.x === b.x && a.y === b.y;
 const inGrid = (s: GameState, p: Pos) => Number.isInteger(p.x) && Number.isInteger(p.y) && p.x >= 0 && p.y >= 0 && p.x < s.width && p.y < s.height;
@@ -49,8 +55,19 @@ export class PlayController {
   private overlay: Overlay = 'none';
   private listeners: Listener[] = [];
 
-  constructor(readonly level: LevelData) {
+  private readonly assist: boolean;
+
+  constructor(readonly level: LevelData, opts: ControllerOptions = {}) {
     this.session = new Session(level);
+    this.assist = opts.assist ?? false;
+    if (this.assist) this.selection = this.firstAvailable();
+  }
+
+  private firstAvailable(): Selection {
+    const s = this.session.state;
+    const plant = PLANT_TYPES.find((t) => s.seeds[t] > 0);
+    if (plant) return { kind: 'seed', plant };
+    return s.tray.length > 0 ? { kind: 'scrap', slot: 0 } : null;
   }
 
   get view(): View {
@@ -92,18 +109,13 @@ export class PlayController {
     this.emit([]);
   }
 
-  tap(tile: Pos, input: InputKind): GameEvent[] {
+  tap(tile: Pos, _input: InputKind): GameEvent[] {
     if (this.overlay !== 'none') return [];
     const s = this.session.state;
     if (!inGrid(s, tile)) return [];
     if (s.tiles[tile.y * s.width + tile.x]!.plant?.bloom) return this.play({ type: 'harvest', ...tile });
     const sel = this.selection;
     if (!sel) return [];
-    if (input === 'touch' && !(this.preview && samePos(this.preview.tile, tile))) {
-      this.preview = this.computePreview(tile);
-      this.emit([]);
-      return [];
-    }
     return this.play(sel.kind === 'seed' ? { type: 'seed', plant: sel.plant, ...tile } : { type: 'scrap', slot: sel.slot, ...tile });
   }
 
@@ -112,16 +124,23 @@ export class PlayController {
     const wasStuck = isStuck(this.session.state);
     const result = this.session.apply(move);
     if (!result.ok) return [];
+    const events = [...result.events];
+    if (canBonus(this.session.state)) {
+      const bonus = this.session.apply({ type: 'bonus' });
+      if (bonus.ok) events.push(...bonus.events);
+    }
     this.settleSelection();
-    if (result.events.some((e) => e.type === 'won')) this.overlay = 'restored';
+    if (events.some((e) => e.type === 'won')) this.overlay = 'restored';
     else if (!wasStuck && isStuck(this.session.state)) this.overlay = 'rests';
     this.refreshPreview();
-    this.emit(result.events);
-    return result.events;
+    this.emit(events);
+    return events;
   }
 
   undo(): void {
     if (!this.session.undo()) return;
+    // A bonus is granted automatically after a move, so undo the move that triggered it too.
+    if (canBonus(this.session.state)) this.session.undo();
     this.overlay = 'none';
     this.settleSelection();
     this.refreshPreview();
@@ -130,7 +149,7 @@ export class PlayController {
 
   restart(): void {
     this.session.restart();
-    this.selection = null;
+    this.selection = this.assist ? this.firstAvailable() : null;
     this.preview = null;
     this.overlay = 'none';
     this.emit([]);
@@ -151,8 +170,11 @@ export class PlayController {
   private settleSelection(): void {
     const s = this.session.state;
     const sel = this.selection;
-    if (sel?.kind === 'seed' && !(s.seeds[sel.plant] > 0)) this.selection = null;
-    if (sel?.kind === 'scrap') this.selection = s.tray.length > 0 ? { kind: 'scrap', slot: Math.min(sel.slot, s.tray.length - 1) } : null;
+    if (sel?.kind === 'seed' && !(s.seeds[sel.plant] > 0)) this.selection = this.assist ? this.firstAvailable() : null;
+    if (sel?.kind === 'scrap') {
+      if (s.tray.length > 0) this.selection = { kind: 'scrap', slot: Math.min(sel.slot, s.tray.length - 1) };
+      else this.selection = this.assist ? this.firstAvailable() : null;
+    }
   }
 
   private refreshPreview(): void {

@@ -68,11 +68,9 @@ describe('Tutorial', () => {
     expect(t.current).toBeNull();
   });
 
-  it('touch: the preview tap does not advance, the confirming tap does', () => {
+  it('touch advances in one tap', () => {
     const { plan, c, t, act } = setup();
     act(() => c.select({ kind: 'seed', plant: 'moss' }));
-    act(() => c.tap(plan.seed1, 'touch'));
-    expect(t.step).toBe(2);
     act(() => c.tap(plan.seed1, 'touch'));
     expect(t.step).toBe(3);
   });

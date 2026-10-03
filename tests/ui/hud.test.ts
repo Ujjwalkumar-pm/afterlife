@@ -90,8 +90,9 @@ describe('Hud', () => {
   });
 
   it('shows the rests overlay with Undo and Restart', () => {
-    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
-    c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
+    const c = new PlayController(makeLevel({ width: 2, height: 1, ground: ['..'], seeds: { moss: 2 }, batches: [['tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'seed', plant: 'moss', x: 1, y: 0 });
     const hud = new Hud(root, handlers());
     hud.render(c.view, meta);
     expect(root.querySelector('.overlay h2')!.textContent).toBe('The garden rests…');
