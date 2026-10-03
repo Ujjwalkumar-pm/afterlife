@@ -1,5 +1,7 @@
 import { PLANT_TYPES, RADIUS, SCRAP, type PlantType } from '../engine';
 import type { Selection, View } from '../game/controller';
+import type { CoachStep } from '../game/tutorial';
+import { ICONS } from './icons';
 
 export interface HudHandlers {
   select(sel: Selection): void;
@@ -10,6 +12,8 @@ export interface HudHandlers {
   next(): void;
   keepDecorating(): void;
   toggleMute(): void;
+  help(): void;
+  skipTutorial(): void;
 }
 
 export interface HudMeta {
@@ -17,9 +21,9 @@ export interface HudMeta {
   hint: string;
   hasNext: boolean;
   muted: boolean;
+  tutorial?: CoachStep | null;
 }
 
-const SWATCH: Record<PlantType, string> = { moss: '#89a94a', vine: '#58934a', flower: '#e89ab0', bamboo: '#9fb85a' };
 const LABEL: Record<PlantType, string> = { moss: 'Moss', vine: 'Vine', flower: 'Flower', bamboo: 'Bamboo' };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -30,8 +34,16 @@ export class Hud {
   private last: { view: View; meta: HudMeta } | null = null;
   private lastHtml = '';
   private lastOverlay = '';
+  private prevProgress: number | null = null;
+  private glowUntil = 0;
+  private prevSeeds: Record<string, number> | null = null;
+  private bumpUntil: Record<string, number> = {};
 
-  constructor(root: HTMLElement, private readonly handlers: HudHandlers) {
+  constructor(
+    root: HTMLElement,
+    private readonly handlers: HudHandlers,
+    private readonly now: () => number = () => Date.now(),
+  ) {
     this.el = document.createElement('div');
     this.el.className = 'hud';
     root.appendChild(this.el);
@@ -40,6 +52,11 @@ export class Hud {
 
   render(view: View, meta: HudMeta): void {
     this.last = { view, meta };
+    const t = this.now();
+    if (this.prevProgress !== null && view.progress - this.prevProgress >= 0.05) this.glowUntil = t + 700;
+    this.prevProgress = view.progress;
+    if (this.prevSeeds) for (const [k, n] of Object.entries(view.state.seeds)) if (n > (this.prevSeeds[k] ?? 0)) this.bumpUntil[k] = t + 500;
+    this.prevSeeds = { ...view.state.seeds };
     const html = this.html(view, meta);
     // Unchanged markup (e.g. a camera rotation) keeps the same nodes, so a press in progress
     // still completes as a click and keyboard focus is not lost.
@@ -88,6 +105,10 @@ export class Hud {
         return h.keepDecorating();
       case 'mute':
         return h.toggleMute();
+      case 'help':
+        return h.help();
+      case 'skip-tutorial':
+        return h.skipTutorial();
     }
   }
 
@@ -95,28 +116,33 @@ export class Hud {
     const s = v.state;
     const sel = v.selection;
     const pct = Math.round(v.progress * 100);
-    const seeds = PLANT_TYPES.filter((t) => s.seeds[t] > 0)
-      .map((t) => {
-        const on = sel?.kind === 'seed' && sel.plant === t;
-        return `<button data-action="seed" data-plant="${t}" class="${on ? 'selected' : ''}" aria-pressed="${on}"><span class="swatch" style="background:${SWATCH[t]}"></span>${LABEL[t]} <span class="count">${s.seeds[t]}</span></button>`;
+    const now = this.now();
+    const coach = m.tutorial ?? null;
+    const seeds = PLANT_TYPES.filter((p) => s.seeds[p] > 0)
+      .map((p) => {
+        const on = sel?.kind === 'seed' && sel.plant === p;
+        const cls = `${on ? 'selected' : ''} ${(this.bumpUntil[p] ?? 0) > now ? 'bump' : ''} ${coach?.target === 'seed-moss' && p === 'moss' ? 'coach-target' : ''}`.trim();
+        return `<button data-action="seed" data-plant="${p}" class="${cls}" aria-pressed="${on}">${ICONS[p]}${LABEL[p]} <span class="count">${s.seeds[p]}</span></button>`;
       })
       .join('');
     const scrap = s.tray
       .map((k, i) => {
         const on = sel?.kind === 'scrap' && sel.slot === i;
         const reach = RADIUS[SCRAP[k].size];
-        return `<button data-action="scrap" data-slot="${i}" class="${on ? 'selected' : ''}" aria-pressed="${on}">${cap(k)} <span class="reach" aria-label="reaches ${reach}">◇${reach}</span></button>`;
+        const cls = `${on ? 'selected' : ''} ${coach?.target === 'scrap' && i === 0 ? 'coach-target' : ''}`.trim();
+        return `<button data-action="scrap" data-slot="${i}" class="${cls}" aria-pressed="${on}">${ICONS[k] ?? ''}${cap(k)} <span class="reach" aria-label="reaches ${reach}">◇${reach}</span></button>`;
       })
       .join('');
     return `
 <header class="hud-top">
   <button data-action="menu" aria-label="Back to places">☰</button>
   <div class="level-name">${esc(m.name)}</div>
-  <div class="meter" role="progressbar" aria-label="Greenery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="meter-fill" style="width:${pct}%"></div></div>
+  <div class="meter ${this.glowUntil > now ? 'glow' : ''} ${coach?.target === 'meter' ? 'coach-target' : ''}" role="progressbar" aria-label="Greenery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="meter-fill" style="width:${pct}%"></div></div>
   <div class="batches" aria-label="${s.batches.length} batches left">${s.batches.map(() => '<i></i>').join('')}</div>
 </header>
-<p class="hint">${esc(m.hint)}</p>
+${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coach.step} of ${coach.total}</span><p>${esc(coach.text)}</p><button data-action="skip-tutorial">Skip tutorial</button></div>` : `<p class="hint">${esc(m.hint)}</p>`}
 <div class="hud-tools">
+  <button data-action="help" aria-label="How to play">${ICONS.help}</button>
   <button data-action="undo" aria-label="Undo" ${v.canUndo ? '' : 'disabled'}>↶</button>
   <button data-action="restart" aria-label="Restart level">⟲</button>
   <button data-action="rotate-left" aria-label="Rotate left">◀</button>

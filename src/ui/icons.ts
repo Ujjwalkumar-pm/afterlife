@@ -1,0 +1,16 @@
+const svg = (body: string) => `<svg class="icon" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true" focusable="false">${body}</svg>`;
+
+export const ICONS: Record<string, string> = {
+  moss: svg('<ellipse cx="11" cy="21" rx="8" ry="5" fill="#5d7a2f"/><ellipse cx="20" cy="19" rx="9" ry="6" fill="#89a94a"/><ellipse cx="17" cy="16" rx="3" ry="1.6" fill="#c5d98f"/>'),
+  vine: svg('<path d="M8 27 C10 18 18 18 16 10 S22 4 24 5" stroke="#4a6b2a" stroke-width="2.2" fill="none" stroke-linecap="round"/><ellipse cx="12" cy="19" rx="4.5" ry="2.4" fill="#58934a"/><ellipse cx="19" cy="11" rx="4.5" ry="2.4" fill="#3f7a3a"/>'),
+  flower: svg('<path d="M16 28 V14" stroke="#4a6b2a" stroke-width="2.2"/><ellipse cx="12" cy="21" rx="4" ry="2" fill="#4f8a3c"/><g fill="#e89ab0"><circle cx="16" cy="7" r="3.4"/><circle cx="21" cy="10.5" r="3.4"/><circle cx="19" cy="15.5" r="3.4"/><circle cx="13" cy="15.5" r="3.4"/><circle cx="11" cy="10.5" r="3.4"/></g><circle cx="16" cy="11.5" r="2.6" fill="#f6e7a8"/>'),
+  bamboo: svg('<g stroke-linecap="round"><path d="M12 29 V6" stroke="#9fb85a" stroke-width="3.2"/><path d="M20 29 V10" stroke="#86a046" stroke-width="3.2"/></g><g stroke="#5f7430" stroke-width="1.2"><path d="M10 14h4M10 21h4M18 17h4M18 24h4"/></g><ellipse cx="16" cy="6" rx="5" ry="1.8" fill="#4f8a3c"/>'),
+  tyre: svg('<ellipse cx="16" cy="18" rx="11" ry="8" fill="#2e2c2a"/><ellipse cx="16" cy="15" rx="11" ry="7" fill="#45423e"/><ellipse cx="16" cy="15" rx="4.5" ry="2.8" fill="#1b1a19"/>'),
+  can: svg('<rect x="11" y="9" width="10" height="16" rx="2" fill="#8b979c"/><ellipse cx="16" cy="9" rx="5" ry="2" fill="#b7c0c4"/>'),
+  cone: svg('<path d="M16 5 L23 25 H9 Z" fill="#d9773a"/><path d="M12.6 15 H19.4 L20.5 18 H11.5 Z" fill="#f1ede2"/><rect x="6" y="25" width="20" height="3" rx="1" fill="#b85f2c"/>'),
+  crate: svg('<path d="M16 6 L27 11 L16 16 L5 11 Z" fill="#a47e58"/><path d="M5 11 L16 16 V27 L5 22 Z" fill="#8c6a48"/><path d="M27 11 L16 16 V27 L27 22 Z" fill="#6b4f35"/>'),
+  barrel: svg('<rect x="9" y="7" width="14" height="19" rx="3" fill="#9a5b3c"/><rect x="9" y="11" width="14" height="2" fill="#6e3f2a"/><rect x="9" y="19" width="14" height="2" fill="#6e3f2a"/><ellipse cx="16" cy="7" rx="7" ry="2.4" fill="#b8775a"/>'),
+  sign: svg('<rect x="15" y="12" width="2" height="16" fill="#5a6468"/><path d="M16 3 L26 13 H6 Z" fill="#b8a24a"/><path d="M15 8h2v3h-2z" fill="#3a3a34"/>'),
+  car: svg('<path d="M4 20 L8 13 H22 L28 20 V24 H4 Z" fill="#9a5b3c"/><path d="M10 14 H20 L23 19 H8 Z" fill="#cfcac0"/><circle cx="10" cy="24" r="3" fill="#2e2c2a"/><circle cx="23" cy="24" r="3" fill="#2e2c2a"/>'),
+  help: svg('<circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12.5 12.5a3.6 3.6 0 1 1 5.2 3.2c-1.2.6-1.7 1.3-1.7 2.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="22.8" r="1.6" fill="currentColor"/>'),
+};

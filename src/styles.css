@@ -59,3 +59,17 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 @media (prefers-reduced-motion: reduce) { .meter-fill { transition: none; } }
 .settings-screen input[type='range'] { width: 180px; accent-color: var(--accent); }
 .credits-screen a { color: var(--accent); }
+.icon { display: block; flex: none; }
+.tray button { padding-left: 12px; }
+.meter.glow .meter-fill { box-shadow: 0 0 12px 3px rgba(156, 194, 90, 0.75); }
+.meter.glow { animation: meter-glow 600ms ease-out; }
+@keyframes meter-glow { from { transform: scaleY(1.6); } to { transform: scaleY(1); } }
+.bump { animation: bump 450ms ease-out; }
+@keyframes bump { 30% { transform: scale(1.14); } 100% { transform: scale(1); } }
+.coach { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 56px); left: 50%; transform: translateX(-50%); width: min(420px, calc(100% - 32px)); background: #f1ede2; color: #23251f; border-radius: 16px; padding: 12px 16px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); pointer-events: auto; display: grid; gap: 4px; }
+.coach p { margin: 0; font-weight: 700; font-size: 17px; }
+.coach-step { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #6b5f52; }
+.coach button { justify-self: end; min-height: 36px; background: transparent; color: #6b5f52; border-color: #c9c2b2; }
+.coach-target { outline: 3px solid #f2c14e; outline-offset: 3px; animation: coach-pulse 1.2s ease-in-out infinite; }
+@keyframes coach-pulse { 50% { outline-color: rgba(242, 193, 78, 0.25); } }
+#ui .coach { pointer-events: auto; }

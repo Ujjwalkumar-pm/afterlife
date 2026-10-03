@@ -5,7 +5,7 @@ import { Hud, type HudHandlers } from '../../src/ui/hud';
 import { makeLevel } from '../engine/helpers';
 
 const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
-  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(),
+  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(), help: vi.fn(), skipTutorial: vi.fn(),
 });
 const meta = { name: 'Bus <Stop>', hint: 'Place scrap near a seed.', hasNext: true, muted: false };
 const click = (el: Element | null) => (el as HTMLElement).click();
@@ -167,5 +167,63 @@ describe('Hud mute button', () => {
     expect(h.toggleMute).toHaveBeenCalled();
     hud.render(c.view, { ...meta, muted: true });
     expect(root.querySelector('[data-action="mute"]')!.getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('Hud v1.1', () => {
+  it('shows icons in tray buttons and a help button', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, meta);
+    expect(root.querySelector('[data-plant="moss"] svg')).not.toBeNull();
+    expect(root.querySelector('[data-action="scrap"] svg')).not.toBeNull();
+    click(root.querySelector('[data-action="help"]'));
+    expect(h.help).toHaveBeenCalled();
+  });
+
+  it('glows the meter for 700 ms when progress jumps by 5% or more', () => {
+    let t = 0;
+    const c = new PlayController(makeLevel({ width: 3, height: 1, ground: ['...'], target: 1, batches: [['tyre', 'tyre']] }));
+    const hud = new Hud(root, handlers(), () => t);
+    hud.render(c.view, meta);
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    hud.render(c.view, meta);
+    expect(root.querySelector('.meter')!.classList.contains('glow')).toBe(true);
+    t = 500;
+    hud.render(c.view, meta);
+    expect(root.querySelector('.meter')!.classList.contains('glow')).toBe(true);
+    t = 800;
+    hud.render(c.view, meta);
+    expect(root.querySelector('.meter')!.classList.contains('glow')).toBe(false);
+  });
+
+  it('bumps a seed button when its count rises', () => {
+    const t = 0;
+    const c = new PlayController(makeLevel());
+    const hud = new Hud(root, handlers(), () => t);
+    hud.render(c.view, meta);
+    const s = structuredClone(c.view);
+    s.state = { ...s.state, seeds: { ...s.state.seeds, moss: s.state.seeds.moss + 1 } };
+    hud.render(s, meta);
+    expect(root.querySelector('[data-plant="moss"]')!.classList.contains('bump')).toBe(true);
+  });
+
+  it('renders the coach bubble, marks its target and offers Skip', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(c.view, { ...meta, tutorial: { step: 1, total: 6, text: 'Tap Moss in your tray.', target: 'seed-moss' } });
+    expect(root.querySelector('.coach')!.textContent).toContain('Step 1 of 6');
+    expect(root.querySelector('.coach')!.textContent).toContain('Tap Moss in your tray.');
+    expect(root.querySelector('.hint')).toBeNull();
+    expect(root.querySelector('[data-plant="moss"]')!.classList.contains('coach-target')).toBe(true);
+    hud.render(c.view, { ...meta, tutorial: { step: 4, total: 6, text: 'Now pick a Tyre.', target: 'scrap' } });
+    expect(root.querySelector('[data-action="scrap"]')!.classList.contains('coach-target')).toBe(true);
+    hud.render(c.view, { ...meta, tutorial: { step: 6, total: 6, text: 'Keep going!', target: 'meter' } });
+    expect(root.querySelector('.meter')!.classList.contains('coach-target')).toBe(true);
+    click(root.querySelector('[data-action="skip-tutorial"]'));
+    expect(h.skipTutorial).toHaveBeenCalled();
   });
 });

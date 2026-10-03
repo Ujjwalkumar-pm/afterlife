@@ -91,6 +91,8 @@ export class App {
       next: () => this.startLevel(this.levelIndex + 1),
       keepDecorating: () => ctrl.keepDecorating(),
       toggleMute: () => this.toggleMute(),
+      help: () => {},
+      skipTutorial: () => {},
     });
     this.hud = hud;
     const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available });
