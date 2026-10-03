@@ -7,10 +7,20 @@
     <meta name="description" content="Afterlife: a calm isometric game about nature reclaiming abandoned places." />
     <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
     <title>Afterlife</title>
+    <style>
+      /* Shown instantly while the game downloads; the app replaces #ui's contents when it starts. */
+      html, body { margin: 0; height: 100%; background: #23251f; }
+      .boot { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: radial-gradient(ellipse at 50% 40%, #34402f, #23251f 70%); color: #f1ede2; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; text-align: center; }
+      .boot h1 { margin: 0; font-size: clamp(40px, 11vw, 80px); letter-spacing: 0.04em; font-weight: 700; text-shadow: 0 0 40px rgba(181, 216, 106, 0.35); }
+      .boot p { margin: 0; color: #b9b4a5; font-size: 15px; }
+      .boot i { width: 44px; height: 44px; border-radius: 50%; border: 3px solid rgba(241, 237, 226, 0.15); border-top-color: #9cc25a; animation: boot-spin 0.9s linear infinite; }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .boot i { animation: none; border-top-color: rgba(241, 237, 226, 0.15); } }
+    </style>
   </head>
   <body>
     <div id="stage"></div>
-    <div id="ui"></div>
+    <div id="ui"><div class="boot" role="status" aria-live="polite"><h1>Afterlife</h1><i aria-hidden="true"></i><p>Growing the garden…</p></div></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
