@@ -8,3 +8,10 @@ it('has an inline SVG icon for every plant, every scrap kind and help', () => {
     expect(ICONS[k]).toContain('aria-hidden="true"');
   }
 });
+
+it('the turn icons draw a board tile with an arc arrow (not back/next chevrons)', () => {
+  for (const k of ['rotate-left', 'rotate-right']) {
+    expect(ICONS[k]).toContain('M16 9l8 4.5-8 4.5-8-4.5z');
+    expect(ICONS[k]).toMatch(/a11 6 0 0 [01] 22 0|a11 6 0 0 1-22 0/);
+  }
+});

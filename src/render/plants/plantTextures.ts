@@ -3,7 +3,7 @@ import { drawPrims } from './plantArt';
 import { offsetPrims, plantPrims, primBounds, scalePrims, type PlantDrawInput } from './plantShapes';
 
 /** Plant textures are drawn at 2× and shown at 0.5 so they stay crisp when the camera zooms in. */
-export const PLANT_RES = 2;
+export const PLANT_RES = 3;
 const PAD = 2;
 
 export interface PlantTexture {

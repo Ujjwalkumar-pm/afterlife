@@ -7,6 +7,7 @@ import manifest from '../objects/sprites.json';
 import { makeSpriteObjectArt, spriteAssets, type SpriteManifest } from '../objects/spriteArt';
 import { darken, lerpColor, PALETTE } from '../palette';
 import { ensurePlantTexture, PLANT_RES } from '../plants/plantTextures';
+import { swipeTurn } from './screen';
 import { Ambient, applySky, drawIsland, makeParticleTextures, type Rect } from './atmosphere';
 import { Celebration } from './celebration';
 import { Effects } from './effects';
@@ -67,6 +68,7 @@ export class DioramaScene extends Phaser.Scene {
   private ready = false;
   private pending: { ctrl: PlayController | null; opts: AttachOptions } | null = null;
   private pinch: { dist: number; zoom: number } | null = null;
+  private pressAt: { x: number; y: number } | null = null;
   private celebration = new Celebration((ms, fn) => {
     const t = this.time.delayedCall(ms, fn);
     return () => t.remove(false);
@@ -116,7 +118,10 @@ export class DioramaScene extends Phaser.Scene {
     this.effects = new Effects(this, this.fxLayer);
     this.input.mouse?.disableContextMenu();
     this.input.addPointer(1);
-    this.input.on('pointerdown', () => this.gate.down());
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      this.gate.down();
+      this.pressAt = { x: p.x, y: p.y };
+    });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.onMove(p));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.onUp(p));
     this.input.on('wheel', (_p: unknown, _o: unknown, _dx: number, dy: number) => this.zoomBy(dy > 0 ? 0.9 : 1.1));
@@ -385,7 +390,7 @@ export class DioramaScene extends Phaser.Scene {
   private flyHarvest(from: { x: number; y: number }, seed: PlantType): void {
     const target = this.opts.trayTarget?.(seed);
     if (!target) return;
-    const w = this.cameras.main.getWorldPoint(target.x, target.y);
+    const w = this.cameras.main.getWorldPoint(target.x * this.px, target.y * this.px);
     this.effects.flyTo(from.x, from.y - 14, w.x, w.y, PALETTE.petal[0]);
   }
 
@@ -425,7 +430,7 @@ export class DioramaScene extends Phaser.Scene {
       const st = cellStatus(s, tv.pos);
       if (!st || st === 'seed') continue;
       const c = toScreen(v, tv.pos);
-      this.labels.add(this.add.text(c.x, c.y - tv.objectHeight - 30, STATUS_GLYPH[st], { fontFamily: 'Nunito, sans-serif', fontSize: '15px', color: '#f4f1e4', stroke: '#23251f', strokeThickness: 3 }).setOrigin(0.5));
+      this.labels.add(this.add.text(c.x, c.y - tv.objectHeight - 30, STATUS_GLYPH[st], { fontFamily: 'Nunito, sans-serif', fontSize: '15px', color: '#f4f1e4', stroke: '#23251f', strokeThickness: 3, resolution: 3 }).setOrigin(0.5));
     }
   }
 
@@ -446,21 +451,31 @@ export class DioramaScene extends Phaser.Scene {
     });
   }
 
+  /** Canvas pixels per CSS pixel (the canvas is drawn at screen density and shown at CSS size). */
+  private get px(): number {
+    return 1 / (this.scale.zoom || 1);
+  }
+
+  private setCamZoom(z: number): void {
+    this.cameras.main.setZoom(clamp(z, 0.5 * this.px, 3 * this.px));
+  }
+
   fit(): void {
     if (!this.ctrl) return;
     const b = sceneBounds(this.isoOf(this.ctrl.view));
-    const narrow = this.scale.width < 600;
-    const side = narrow ? 16 : 96;
-    const hud = narrow ? 150 : HUD_SPACE;
-    this.baseZoom = clamp(Math.min(this.scale.width / (b.width + side), (this.scale.height - hud) / (b.height + 40)), 0.5, 3);
+    const k = this.px;
+    const narrow = this.scale.width / k < 600;
+    const side = (narrow ? 16 : 96) * k;
+    const hud = (narrow ? 150 : HUD_SPACE) * k;
+    this.baseZoom = clamp(Math.min(this.scale.width / (b.width + side), (this.scale.height - hud) / (b.height + 40)), 0.5 * k, 3 * k);
     const cam = this.cameras.main;
-    cam.setZoom(clamp(this.baseZoom * this.userZoom, 0.5, 3));
+    this.setCamZoom(this.baseZoom * this.userZoom);
     cam.centerOn(b.centerX, b.centerY - 10 / cam.zoom);
   }
 
   private zoomBy(f: number): void {
     this.userZoom = clamp(this.userZoom * f, 0.5, 3);
-    this.cameras.main.setZoom(clamp(this.baseZoom * this.userZoom, 0.5, 3));
+    this.setCamZoom(this.baseZoom * this.userZoom);
   }
 
   private pick(p: Phaser.Input.Pointer): Pos | null {
@@ -478,7 +493,7 @@ export class DioramaScene extends Phaser.Scene {
       if (!this.pinch) this.pinch = { dist: d, zoom: this.cameras.main.zoom };
       else {
         this.userZoom = clamp((this.pinch.zoom * d) / this.pinch.dist / this.baseZoom, 0.5, 3);
-        this.cameras.main.setZoom(clamp(this.baseZoom * this.userZoom, 0.5, 3));
+        this.setCamZoom(this.baseZoom * this.userZoom);
       }
       return true;
     }
@@ -493,8 +508,19 @@ export class DioramaScene extends Phaser.Scene {
 
   private onUp(p: Phaser.Input.Pointer): void {
     const anyDown = this.input.pointer1.isDown || this.input.pointer2.isDown;
+    const wasPinching = this.gate.pinching;
     const isTap = this.gate.up(anyDown);
     if (!anyDown) this.pinch = null;
+    // A sideways drag turns the board a quarter (never a tap, so it never places anything).
+    const start = this.pressAt;
+    this.pressAt = null;
+    if (isTap && !wasPinching && start && this.ctrl && this.opts.interactive && this.inputEnabled && !this.celebration.running) {
+      const turn = swipeTurn((p.x - start.x) / this.px, (p.y - start.y) / this.px);
+      if (turn !== 0) {
+        this.ctrl.rotate(turn);
+        return;
+      }
+    }
     if (!isTap || !this.ctrl || !this.opts.interactive || !this.inputEnabled || this.celebration.running) return;
     if (p.rightButtonReleased()) {
       this.ctrl.select(null);

@@ -215,8 +215,8 @@ ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coac
   <button data-action="undo" aria-label="Undo" ${v.canUndo ? '' : 'disabled'}>${ICONS.undo}</button>
   <button data-action="restart" aria-label="Restart level">${ICONS.restart}</button>
   <span class="sep"></span>
-  <button data-action="rotate-left" aria-label="Rotate left">${ICONS['rotate-left']}</button>
-  <button data-action="rotate-right" aria-label="Rotate right">${ICONS['rotate-right']}</button>
+  <button data-action="rotate-left" aria-label="Turn left">${ICONS['rotate-left']}</button>
+  <button data-action="rotate-right" aria-label="Turn right">${ICONS['rotate-right']}</button>
   <span class="sep"></span>
   <button data-action="mute" aria-label="Mute" aria-pressed="${m.muted}">${m.muted ? ICONS['sound-off'] : ICONS['sound-on']}</button>
 </div>

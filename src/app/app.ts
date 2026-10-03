@@ -353,7 +353,7 @@ export class App {
       [ICONS.tyre!, 'Feed', 'Scrap makes every plant inside its ring grow one step. Small scrap reaches 1 tile, medium 2, large 3.'],
       [ICONS.flower!, 'Grow', 'Grown moss and vines spread to new tiles. Flowers bloom — tap a bloom for a free seed. Bamboo grows tall.'],
       [ICONS.crate!, 'Restore', 'Cover the scene — the scrap too — to fill the meter.'],
-      [ICONS.bamboo!, 'Relax', 'No timer, no losing. Undo any time; rotate (◀ ▶ or Q/E) and zoom to look around. Stuck? Wait a moment — the best tile glows.'],
+      [ICONS.bamboo!, 'Relax', 'No timer, no losing. Undo any time. Swipe the board sideways to turn it (or use the turn buttons, Q/E), and pinch or scroll to zoom. Stuck? Tap the bulb for a hint.'],
     ];
     const list = cards.map(([icon, title, text]) => `<li class="howto-card">${icon}<h3>${title}</h3><p>${text}</p></li>`).join('');
     const back = inLevel ? '<button data-close-howto class="primary">Back to the level</button>' : '<button data-nav="title" class="primary">Back</button>';

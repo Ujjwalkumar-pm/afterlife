@@ -526,4 +526,9 @@ describe('App v1.3 story and Pip', () => {
     click('[data-story="skip"]');
     expect(document.activeElement).toBe(root.querySelector('[data-nav="select"]'));
   });
+  it('How to Play teaches swiping to turn the board', () => {
+    new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts);
+    click('[data-nav="howto"]');
+    expect(root.querySelector('.howto-list')!.textContent).toContain('Swipe the board sideways to turn it');
+  });
 });
