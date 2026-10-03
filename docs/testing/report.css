@@ -1,0 +1,13 @@
+@page { size: A4; margin: 16mm 14mm 16mm 14mm; }
+body { font-size: 10.5pt; }
+table { font-size: 8.8pt; width: 100%; border-collapse: collapse; page-break-inside: auto; }
+tr { page-break-inside: avoid; }
+th, td { padding: 4px 6px; vertical-align: top; }
+td code { font-size: 7.6pt; word-break: break-all; }
+.verdict { border: 2px solid #3f8f4a; background: #eef7ea; border-radius: 10px; padding: 10px 16px; margin: 10px 0 14px; }
+.verdict p { margin: 4px 0; }
+img { max-width: 100%; display: block; margin: 8px auto; border-radius: 6px; }
+pre { font-size: 8pt; line-height: 1.35; white-space: pre-wrap; }
+h2 { page-break-after: avoid; margin-top: 18px; }
+header#title-block-header { display: none; }
+table { table-layout: auto; } td:first-child { white-space: nowrap; }
