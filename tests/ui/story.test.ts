@@ -97,4 +97,26 @@ describe('StoryPlayer', () => {
     expect(onDone).not.toHaveBeenCalled();
     expect(root.querySelector('.story')).toBeNull();
   });
+  it('keeps Tab inside the dialog', () => {
+    new StoryPlayer(root, { onDone: vi.fn() });
+    const skip = root.querySelector<HTMLElement>('[data-story="skip"]')!;
+    skip.focus();
+    const ev = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    skip.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(skip);
+    vi.advanceTimersByTime(20000);
+    const b = begin();
+    const ev2 = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    b.dispatchEvent(ev2);
+    expect(document.activeElement).toBe(skip);
+  });
+  it('does not pull focus to Tap to begin when the player has moved it elsewhere in the dialog', () => {
+    new StoryPlayer(root, { onDone: vi.fn() });
+    const cap = root.querySelector<HTMLElement>('.story-caption')!;
+    cap.tabIndex = -1;
+    cap.focus();
+    vi.advanceTimersByTime(20000);
+    expect(document.activeElement).toBe(cap);
+  });
 });

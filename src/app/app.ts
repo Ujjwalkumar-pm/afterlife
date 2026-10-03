@@ -255,6 +255,8 @@ export class App {
           writeSave(this.store, this.save);
         }
         this.show(then);
+        // The dialog's buttons are gone; give focus a home on the new screen.
+        this.root.querySelector<HTMLElement>('.level-card:not([disabled]), .menu .primary, .screen button')?.focus();
       },
     });
   }

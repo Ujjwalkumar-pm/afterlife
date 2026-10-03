@@ -516,4 +516,14 @@ describe('App v1.3 story and Pip', () => {
     expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(true);
     vi.useRealTimers();
   });
+  it('after the story, focus lands on the new screen (not lost on the page)', () => {
+    new App(root, stage, memoryStore(), LEVELS, opts);
+    click('[data-nav="select"]');
+    click('[data-story="skip"]');
+    expect(document.activeElement).toBe(root.querySelector('[data-level="0"]'));
+    click('[data-nav="title"]');
+    click('[data-nav="story"]');
+    click('[data-story="skip"]');
+    expect(document.activeElement).toBe(root.querySelector('[data-nav="select"]'));
+  });
 });

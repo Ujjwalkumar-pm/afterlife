@@ -324,7 +324,8 @@ describe('Hud Pip', () => {
     hud.render(new PlayController(makeLevel({})).view, meta);
     expect(pip().className).toBe('pip mood-idle');
     expect(line().hidden).toBe(true);
-    expect(line().getAttribute('aria-live')).toBe('polite');
+    expect(root.querySelector('.pip-sr')!.getAttribute('aria-live')).toBe('polite');
+    expect(line().getAttribute('aria-hidden')).toBe('true');
     expect(hud.el.contains(pip())).toBe(false);
   });
   it('says a line with its mood, then rests after 2.5 s', () => {
@@ -373,11 +374,12 @@ describe('Hud Pip', () => {
 });
 
 describe('Hud look and feel', () => {
-  it('uses SVG icons only in the tools (no emoji or text glyphs) grouped in a toolbar', () => {
+  it('uses SVG icons only in the tools (no emoji or text glyphs) grouped in a labelled group', () => {
     const hud = new Hud(root, handlers());
     hud.render(new PlayController(makeLevel({})).view, meta);
     const tools = root.querySelector('.hud-tools')!;
-    expect(tools.getAttribute('role')).toBe('toolbar');
+    expect(tools.getAttribute('role')).toBe('group');
+    expect(tools.getAttribute('aria-label')).toBe('Tools');
     expect(tools.querySelectorAll('.sep')).toHaveLength(3);
     for (const b of root.querySelectorAll('.hud-tools button, [data-action="menu"]')) {
       expect(b.querySelector('svg'), b.getAttribute('aria-label')!).not.toBeNull();
@@ -401,5 +403,37 @@ describe('Hud look and feel', () => {
     hud.render(c.view, meta);
     hud.showError();
     expect(root.querySelector('.overlay > .panel h2')!.textContent).toBe('Something went wrong');
+  });
+});
+
+describe('Hud v1.3.1 polish', () => {
+  it('announces Pip through a live region that is always present and only changes its text', () => {
+    vi.useFakeTimers();
+    const hud = new Hud(root, handlers());
+    const sr = root.querySelector<HTMLElement>('.pip-sr')!;
+    expect(sr.hidden).toBe(false);
+    expect(sr.textContent).toBe('');
+    hud.setPip({ mood: 'cheer', line: 'Lush!' });
+    expect(root.querySelector('.pip-sr')).toBe(sr);
+    expect(sr.textContent).toBe('Lush!');
+    vi.advanceTimersByTime(PIP_LINE_MS);
+    expect(sr.textContent).toBe('');
+    vi.useRealTimers();
+  });
+  it('a second line in the same mood replays its animation (the say counter flips)', () => {
+    const hud = new Hud(root, handlers());
+    const pipEl = root.querySelector<HTMLElement>('.pip')!;
+    hud.setPip({ mood: 'cheer', line: 'Nice!' });
+    const first = pipEl.dataset.say;
+    hud.setPip({ mood: 'cheer', line: 'Lush!' });
+    expect(pipEl.dataset.say).not.toBe(first);
+  });
+  it('the mute button is labelled Mute and pressed only while muted', () => {
+    const hud = new Hud(root, handlers());
+    const v = new PlayController(makeLevel({})).view;
+    hud.render(v, { ...meta, muted: true });
+    const b = root.querySelector('[data-action="mute"]')!;
+    expect(b.getAttribute('aria-label')).toBe('Mute');
+    expect(b.getAttribute('aria-pressed')).toBe('true');
   });
 });

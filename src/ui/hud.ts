@@ -61,7 +61,7 @@ export class Hud {
     // Pip lives beside the HUD markup, so HUD redraws never restart its animation or wipe its line.
     this.pipEl = document.createElement('div');
     this.pipEl.className = 'pip mood-idle';
-    this.pipEl.innerHTML = `${pipSvg()}<p class="pip-line" aria-live="polite" hidden></p>`;
+    this.pipEl.innerHTML = `${pipSvg()}<p class="pip-line" aria-hidden="true" hidden></p><p class="pip-sr" aria-live="polite"></p>`;
     root.appendChild(this.pipEl);
   }
 
@@ -121,13 +121,19 @@ export class Hud {
       return;
     }
     this.pipEl.className = `pip mood-${say.mood}`;
+    // Flip the say counter so CSS can replay the mood's animation for a back-to-back line.
+    this.pipEl.dataset.say = this.pipEl.dataset.say === '1' ? '0' : '1';
     const line = this.pipEl.querySelector<HTMLElement>('.pip-line')!;
+    const sr = this.pipEl.querySelector<HTMLElement>('.pip-sr')!;
     line.textContent = say.line;
     line.hidden = false;
+    // The live region stays in place; only its text changes, so screen readers reliably announce it.
+    sr.textContent = say.line;
     if (this.pipTimer) clearTimeout(this.pipTimer);
     this.pipTimer = setTimeout(() => {
       this.pipTimer = null;
       line.hidden = true;
+      sr.textContent = '';
       this.pipEl.className = `pip mood-${this.pipRest}`;
     }, PIP_LINE_MS);
   }
@@ -203,7 +209,7 @@ export class Hud {
   <div class="batches" title="Scrap batches left" aria-label="${s.batches.length} batches left">${ICONS.crate}<span class="n">${s.batches.length}</span></div>
 </header>
 ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coach.step} of ${coach.total}</span><p>${esc(coach.text)}</p><button data-action="skip-tutorial">Skip tutorial</button></div>` : `<p class="hint">${esc(m.hint)}</p>`}
-<div class="hud-tools" role="toolbar" aria-label="Tools">
+<div class="hud-tools" role="group" aria-label="Tools">
   <button data-action="help" aria-label="How to play">${ICONS.help}</button>
   <span class="sep"></span>
   <button data-action="undo" aria-label="Undo" ${v.canUndo ? '' : 'disabled'}>${ICONS.undo}</button>
@@ -212,7 +218,7 @@ ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coac
   <button data-action="rotate-left" aria-label="Rotate left">${ICONS['rotate-left']}</button>
   <button data-action="rotate-right" aria-label="Rotate right">${ICONS['rotate-right']}</button>
   <span class="sep"></span>
-  <button data-action="mute" aria-label="Sound" aria-pressed="${m.muted}">${m.muted ? ICONS['sound-off'] : ICONS['sound-on']}</button>
+  <button data-action="mute" aria-label="Mute" aria-pressed="${m.muted}">${m.muted ? ICONS['sound-off'] : ICONS['sound-on']}</button>
 </div>
 <footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
 ${this.toastUntil > now ? '<div class="toast" role="status">Bonus pack: +2 moss, +1 tyre</div>' : ''}

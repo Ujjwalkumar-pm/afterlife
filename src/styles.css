@@ -231,3 +231,9 @@ button:disabled { opacity: 0.35; filter: grayscale(1); }
 .story-begin { position: static; transform: none; }
 .story-begin[hidden] { display: block; visibility: hidden; }
 @media (max-aspect-ratio: 4 / 5) { .story { padding-top: 56px; } .story-scene { height: min(56vh, calc(100vh - 230px)); } }
+/* v1.3.1: Pip's screen-reader line, and replayed hop/wave for back-to-back lines */
+.pip-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pip.mood-cheer[data-say='1'] .pip-figure { animation-name: pip-hop-b; }
+.pip.mood-wave[data-say='1'] .pip-arm-r { animation-name: pip-wave-b; }
+@keyframes pip-hop-b { 40% { transform: translateY(-10px); } }
+@keyframes pip-wave-b { 50% { transform: rotate(-60deg); } }

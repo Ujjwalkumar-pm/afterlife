@@ -49,7 +49,14 @@ export class StoryPlayer {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private finished = false;
   private readonly onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') this.finish();
+    if (e.key === 'Escape') return this.finish();
+    if (e.key !== 'Tab') return;
+    // A modal dialog: Tab cycles between its own buttons only.
+    const stops = [...this.el.querySelectorAll<HTMLButtonElement>('[data-story]')].filter((b) => !b.hidden);
+    e.preventDefault();
+    const i = stops.indexOf(document.activeElement as HTMLButtonElement);
+    const next = stops[(i + (e.shiftKey ? -1 : 1) + stops.length) % stops.length];
+    next?.focus();
   };
 
   constructor(
@@ -79,7 +86,9 @@ export class StoryPlayer {
     if (n === STORY_BEATS.length) {
       const begin = this.el.querySelector<HTMLButtonElement>('[data-story="begin"]')!;
       begin.hidden = false;
-      begin.focus();
+      // Move focus only if it is still on Skip (or nowhere), so a reader isn't yanked mid-sentence.
+      const at = document.activeElement;
+      if (at === this.el.querySelector('[data-story="skip"]') || at === document.body || !this.el.contains(at)) begin.focus();
       return;
     }
     this.timer = setTimeout(() => this.go(n + 1), STORY_BEATS[n - 1]!.ms);
