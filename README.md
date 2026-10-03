@@ -2,7 +2,7 @@
 
 A calm isometric web game about nature reclaiming abandoned places. Plant seeds among the ruins, drop scrap to feed them, and watch moss, vines, flowers and bamboo take the scene back.
 
-> Play it: **(live link added at launch)** · v1 complete: 5 places, generative soundtrack, Kenney props.
+> Play it: **[afterlife-one.vercel.app](https://afterlife-one.vercel.app)** · v1 complete: 5 places, generative soundtrack, Kenney props.
 
 ![Afterlife](public/hero.png)
 

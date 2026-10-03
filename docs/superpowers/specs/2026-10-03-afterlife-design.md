@@ -1,6 +1,6 @@
 # Afterlife — Design Spec (v1)
 
-*3 October 2026 · Status: approved; growth rule revised 3 Oct (see §11) · Owner: Ujjwal (director) · Builder: Claude*
+*3 October 2026 · Status: v1 shipped 3 Oct 2026 — https://afterlife-one.vercel.app · Owner: Ujjwal (director) · Builder: Claude*
 
 ## 1. Purpose and success criteria
 
@@ -216,3 +216,4 @@ Afterlife/
 
 - **3 Oct 2026 — growth rule revised (approved by Ujjwal).** In the first version, moss and vines spread one tile per growth tick. The level solver showed that rule caps every level at about 17–25% coverage, because scrap fills the scene faster than plants can cover it. Grown moss now spreads into every eligible neighbour, and vines climb onto every neighbouring object (or creep one tile on bare ground). Each level also gets about twice as many seeds and scrap.
 - **3 Oct 2026 — art source and UI layer (approved by Ujjwal).** Kenney's isometric packs cover only about half the objects, in mixed styles, so v1 draws every object in code and Plan 3 upgrades matched objects to rendered Kenney 3D sprites. The interface is an HTML/CSS layer over the Phaser canvas.
+- **3 Oct 2026 — v1 launched.** Live at https://afterlife-one.vercel.app (Vercel, auto-deploys from `main`). Sound effects are synthesized live with Tone.js rather than CC0 audio files (§6), and 11 of 18 objects use Kenney CC0 sprites while the rest stay code-drawn.
