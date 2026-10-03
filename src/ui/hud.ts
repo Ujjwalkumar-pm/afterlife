@@ -41,6 +41,7 @@ export class Hud {
   private bumpUntil: Record<string, number> = {};
   private prevBonus: number | null = null;
   private toastUntil = 0;
+  private expiryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     root: HTMLElement,
@@ -62,6 +63,7 @@ export class Hud {
     this.prevSeeds = { ...view.state.seeds };
     if (this.prevBonus !== null && view.state.bonusUsed > this.prevBonus) this.toastUntil = t + 1500;
     this.prevBonus = view.state.bonusUsed;
+    this.scheduleExpiry(t);
     const html = this.html(view, meta);
     // Unchanged markup (e.g. a camera rotation) keeps the same nodes, so a press in progress
     // still completes as a click and keyboard focus is not lost.
@@ -75,12 +77,25 @@ export class Hud {
     }
   }
 
+  /** Timed effects (toast, meter glow) must disappear on their own, even if nothing else changes. */
+  private scheduleExpiry(t: number): void {
+    if (this.expiryTimer) clearTimeout(this.expiryTimer);
+    this.expiryTimer = null;
+    const next = Math.min(...[this.toastUntil, this.glowUntil].filter((u) => u > t));
+    if (!Number.isFinite(next)) return;
+    this.expiryTimer = setTimeout(() => {
+      this.expiryTimer = null;
+      if (this.last) this.render(this.last.view, this.last.meta);
+    }, next - t + 20);
+  }
+
   showError(): void {
     this.error = true;
     if (this.last) this.render(this.last.view, this.last.meta);
   }
 
   destroy(): void {
+    if (this.expiryTimer) clearTimeout(this.expiryTimer);
     this.el.remove();
   }
 

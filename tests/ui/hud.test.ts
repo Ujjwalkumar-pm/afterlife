@@ -256,3 +256,21 @@ describe('Hud v1.2', () => {
     expect(root.querySelector('.toast')).toBeNull();
   });
 });
+
+describe('Hud timed effects expire on their own', () => {
+  it('hides the bonus toast and the meter glow without another render', () => {
+    vi.useFakeTimers();
+    const c = new PlayController(makeLevel({ width: 3, height: 1, ground: ['...'], target: 1, seeds: { moss: 1 }, batches: [['tyre']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    hud.render(c.view, meta);
+    expect(root.querySelector('.toast')).not.toBeNull();
+    expect(root.querySelector('.meter')!.classList.contains('glow')).toBe(true);
+    vi.advanceTimersByTime(1600);
+    expect(root.querySelector('.toast')).toBeNull();
+    expect(root.querySelector('.meter')!.classList.contains('glow')).toBe(false);
+    vi.useRealTimers();
+  });
+});
