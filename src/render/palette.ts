@@ -1,8 +1,8 @@
 export const PALETTE = {
   bg: 0x23251f,
-  soilDry: 0x6b5f52,
+  soilDry: 0x7a6a56,
   soilLush: 0x56492f,
-  concreteDry: 0x8a8a84,
+  concreteDry: 0x9b978d,
   concreteLush: 0x7b836c,
   wall: 0x55534c,
   ring: 0xf4f1e4,

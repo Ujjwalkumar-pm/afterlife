@@ -95,8 +95,8 @@ describe('timings', () => {
 
 describe('atmosphere maths', () => {
   it('sky goes from dusty to golden and clamps', () => {
-    expect(skyColors(0)).toEqual({ top: '#2b3036', bottom: '#3d3a33' });
-    expect(skyColors(1)).toEqual({ top: '#3b4a3e', bottom: '#7a6a45' });
+    expect(skyColors(0)).toEqual({ top: '#2c3540', bottom: '#4a4336' });
+    expect(skyColors(1)).toEqual({ top: '#4f7262', bottom: '#d2a85e' });
     expect(skyColors(5)).toEqual(skyColors(1));
   });
   it('island corners wrap the whole board', () => {

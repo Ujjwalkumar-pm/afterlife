@@ -1,0 +1,280 @@
+{
+  "id": "rooftop-garden",
+  "name": "Rooftop Garden",
+  "hint": "The last place. Every plant has its part to play.",
+  "width": 8,
+  "height": 8,
+  "ground": [
+    "##....##",
+    "#......#",
+    "........",
+    "...XX...",
+    "...XX...",
+    "........",
+    "#......#",
+    "##....##"
+  ],
+  "ruins": [
+    {
+      "x": 1,
+      "y": 1,
+      "name": "chimney",
+      "size": "medium"
+    },
+    {
+      "x": 6,
+      "y": 6,
+      "name": "chimney",
+      "size": "medium"
+    },
+    {
+      "x": 6,
+      "y": 1,
+      "name": "planter",
+      "size": "small"
+    },
+    {
+      "x": 1,
+      "y": 6,
+      "name": "planter",
+      "size": "small"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "name": "water-tank",
+      "size": "medium"
+    },
+    {
+      "x": 0,
+      "y": 4,
+      "name": "ac-unit",
+      "size": "medium"
+    }
+  ],
+  "seeds": {
+    "moss": 4,
+    "vine": 3,
+    "flower": 2,
+    "bamboo": 2
+  },
+  "harvestYield": "moss",
+  "batches": [
+    [
+      "tyre",
+      "crate",
+      "can"
+    ],
+    [
+      "car",
+      "tyre",
+      "cone"
+    ],
+    [
+      "crate",
+      "barrel",
+      "tyre"
+    ],
+    [
+      "can",
+      "tyre",
+      "crate"
+    ],
+    [
+      "tyre",
+      "car",
+      "can"
+    ],
+    [
+      "sign",
+      "tyre",
+      "crate"
+    ],
+    [
+      "cone",
+      "tyre",
+      "barrel"
+    ],
+    [
+      "tyre",
+      "can",
+      "car"
+    ],
+    [
+      "crate",
+      "tyre",
+      "can"
+    ],
+    [
+      "tyre",
+      "crate",
+      "sign"
+    ]
+  ],
+  "target": 0.6,
+  "rngSeed": 808,
+  "solution": [
+    {
+      "type": "seed",
+      "plant": "moss",
+      "x": 2,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 1
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 3
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 0,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 1,
+      "y": 5
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 2,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 3,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 4,
+      "y": 6
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 4,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 7
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 1,
+      "x": 5,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 6,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 2,
+      "x": 6,
+      "y": 2
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 7,
+      "y": 4
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 5,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 6,
+      "y": 0
+    },
+    {
+      "type": "scrap",
+      "slot": 0,
+      "x": 7,
+      "y": 6
+    }
+  ]
+}

@@ -6,9 +6,9 @@ import { LEVELS } from '../../src/levels';
 const dir = new URL('../../src/levels/', import.meta.url);
 const files = readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
 
-it('has exactly 5 level files, all exported in order', () => {
-  expect(files).toHaveLength(5);
-  expect(LEVELS.map((l) => l.id)).toEqual(['bus-stop', 'rooftop', 'petrol-station', 'railway-platform', 'playground']);
+it('has exactly 8 level files, all exported in order', () => {
+  expect(files).toHaveLength(8);
+  expect(LEVELS.map((l) => l.id)).toEqual(['bus-stop', 'rooftop', 'petrol-station', 'railway-platform', 'playground', 'laundromat', 'bus-depot', 'rooftop-garden']);
 });
 
 describe.each(files)('%s', (file) => {
@@ -26,4 +26,8 @@ describe.each(files)('%s', (file) => {
     });
     expect(coverage(session.state)).toBeGreaterThanOrEqual(level.target);
   });
+});
+
+it('the Laundromat hint does not promise "no moss" (bonus packs always bring moss)', () => {
+  expect(LEVELS.find((l) => l.id === 'laundromat')!.hint).not.toMatch(/no moss/i);
 });

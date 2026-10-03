@@ -1,7 +1,8 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayController } from '../../src/game/controller';
-import { Hud, type HudHandlers } from '../../src/ui/hud';
+import { Hud, PIP_LINE_MS, type HudHandlers } from '../../src/ui/hud';
+import { ICONS } from '../../src/ui/icons';
 import { makeLevel } from '../engine/helpers';
 
 const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
@@ -24,7 +25,8 @@ describe('Hud', () => {
     expect(root.querySelector('.level-name')!.textContent).toBe('Bus <Stop>');
     expect(root.querySelector('.hint')!.textContent).toBe('Place scrap near a seed.');
     expect((root.querySelector('.meter-fill') as HTMLElement).style.width).toBe('0%');
-    expect(root.querySelectorAll('.batches i')).toHaveLength(2);
+    expect(root.querySelector('.batches .n')!.textContent).toBe('2');
+    expect(root.querySelector('.batches')!.getAttribute('aria-label')).toBe('2 batches left');
   });
 
   it('lists seeds with counts and scrap with reach, and marks the selection', () => {
@@ -310,5 +312,94 @@ describe('v1.2.1 polish', () => {
     expect(root.querySelector('.tray')!.classList.contains('sparkle')).toBe(false);
     expect(root.querySelector('[data-action="undo"]')).toBe(undo);
     vi.useRealTimers();
+  });
+});
+
+describe('Hud Pip', () => {
+  const pip = () => root.querySelector('.pip')!;
+  const line = () => root.querySelector<HTMLElement>('.pip-line')!;
+
+  it('shows Pip idle and silent, outside the HUD markup', () => {
+    const hud = new Hud(root, handlers());
+    hud.render(new PlayController(makeLevel({})).view, meta);
+    expect(pip().className).toBe('pip mood-idle');
+    expect(line().hidden).toBe(true);
+    expect(line().getAttribute('aria-live')).toBe('polite');
+    expect(hud.el.contains(pip())).toBe(false);
+  });
+  it('says a line with its mood, then rests after 2.5 s', () => {
+    vi.useFakeTimers();
+    const hud = new Hud(root, handlers());
+    hud.setPip({ mood: 'cheer', line: 'Lush!' });
+    expect(pip().className).toBe('pip mood-cheer');
+    expect(line().hidden).toBe(false);
+    expect(line().textContent).toBe('Lush!');
+    vi.advanceTimersByTime(PIP_LINE_MS);
+    expect(line().hidden).toBe(true);
+    expect(pip().className).toBe('pip mood-idle');
+    vi.useRealTimers();
+  });
+  it('a silent rule sets the resting mood but never cuts a line short', () => {
+    vi.useFakeTimers();
+    const hud = new Hud(root, handlers());
+    hud.setPip({ mood: 'cheer', line: 'Nice!' });
+    hud.setPip({ mood: 'point', line: null });
+    expect(pip().className).toBe('pip mood-cheer');
+    expect(line().hidden).toBe(false);
+    vi.advanceTimersByTime(PIP_LINE_MS);
+    expect(pip().className).toBe('pip mood-point');
+    hud.setPip({ mood: 'idle', line: null });
+    expect(pip().className).toBe('pip mood-idle');
+    vi.useRealTimers();
+  });
+  it('keeps the line through HUD redraws', () => {
+    const c = new PlayController(makeLevel({}));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    hud.setPip({ mood: 'point', line: 'Try the glowing spot!' });
+    hud.render(c.view, { ...meta, name: 'Changed' });
+    expect(line().textContent).toBe('Try the glowing spot!');
+    expect(line().hidden).toBe(false);
+  });
+  it('destroy removes Pip and its pending timer', () => {
+    vi.useFakeTimers();
+    const hud = new Hud(root, handlers());
+    hud.setPip({ mood: 'wave', line: 'We did it! Look at it bloom.' });
+    hud.destroy();
+    expect(root.querySelector('.pip')).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+    vi.useRealTimers();
+  });
+});
+
+describe('Hud look and feel', () => {
+  it('uses SVG icons only in the tools (no emoji or text glyphs) grouped in a toolbar', () => {
+    const hud = new Hud(root, handlers());
+    hud.render(new PlayController(makeLevel({})).view, meta);
+    const tools = root.querySelector('.hud-tools')!;
+    expect(tools.getAttribute('role')).toBe('toolbar');
+    expect(tools.querySelectorAll('.sep')).toHaveLength(3);
+    for (const b of root.querySelectorAll('.hud-tools button, [data-action="menu"]')) {
+      expect(b.querySelector('svg'), b.getAttribute('aria-label')!).not.toBeNull();
+      expect(b.textContent!.trim()).toBe('');
+    }
+  });
+  it('switches the sound icon with mute and shows the meter percentage', () => {
+    const hud = new Hud(root, handlers());
+    const v = new PlayController(makeLevel({})).view;
+    hud.render(v, { ...meta, muted: true });
+    // Compare the icon's drawing, not raw markup (the DOM re-serialises <path/> as <path></path>).
+    const paths = (html: string) => [...html.matchAll(/ d="([^"]+)"/g)].map((x) => x[1]);
+    expect(paths(root.querySelector('[data-action="mute"]')!.innerHTML)).toEqual(paths(ICONS['sound-off']!));
+    hud.render(v, { ...meta, muted: false });
+    expect(paths(root.querySelector('[data-action="mute"]')!.innerHTML)).toEqual(paths(ICONS['sound-on']!));
+    expect(root.querySelector('.meter-pct')!.textContent).toBe('0%');
+  });
+  it('puts overlays in a panel card', () => {
+    const c = new PlayController(makeLevel({}));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    hud.showError();
+    expect(root.querySelector('.overlay > .panel h2')!.textContent).toBe('Something went wrong');
   });
 });

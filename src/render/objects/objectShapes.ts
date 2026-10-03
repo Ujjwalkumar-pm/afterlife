@@ -33,6 +33,12 @@ export const OBJECTS: Record<string, Block[]> = {
   swings: [box(-0.4, 0, 0.05, 0.05, 0, 36, C.metalDark), box(0.4, 0, 0.05, 0.05, 0, 36, C.metalDark), box(0, 0, 0.85, 0.05, 36, 3, C.metalDark), box(-0.15, 0, 0.14, 0.12, 10, 2, C.wood), box(0.15, 0, 0.14, 0.12, 10, 2, C.wood)],
   roundabout: [cyl(0, 0, 0.42, 0, 5, C.paintRed), cyl(0, 0, 0.05, 5, 12, C.metal)],
   sandpit: [box(0, 0, 0.9, 0.9, 0, 4, C.wood), box(0, 0, 0.78, 0.78, 0, 5, C.sand)],
+  washer: [box(0, 0, 0.62, 0.62, 0, 24, C.white), box(0, 0.32, 0.3, 0.02, 6, 12, C.metalDark), box(0, 0, 0.64, 0.64, 24, 2, C.metal)],
+  dryer: [box(0, 0, 0.62, 0.62, 0, 24, C.white), box(0, 0.32, 0.34, 0.02, 8, 10, C.metal), box(0, 0, 0.64, 0.64, 24, 2, C.metalDark)],
+  'laundry-cart': [...legs(0.2, 6), box(0, 0, 0.5, 0.4, 6, 12, C.metal), box(0, 0, 0.46, 0.36, 18, 2, C.white)],
+  'old-bus': [box(0, 0, 0.96, 0.6, 3, 24, C.paintBlue), box(0, 0, 0.97, 0.62, 15, 6, C.white), cyl(0.3, 0.3, 0.09, 0, 7, C.rubber), cyl(-0.3, 0.3, 0.09, 0, 7, C.rubber)],
+  planter: [box(0, 0, 0.72, 0.72, 0, 10, C.wood), box(0, 0, 0.62, 0.62, 0, 11, C.soilLush)],
+  chimney: [box(0, 0, 0.4, 0.4, 0, 34, C.paintRed), box(0, 0, 0.46, 0.46, 34, 4, C.metalDark)],
 };
 
 export const hasObjectShape = (name: string): boolean => Object.hasOwn(OBJECTS, name);

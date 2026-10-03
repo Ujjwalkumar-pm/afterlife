@@ -11,6 +11,15 @@ const throwingStore: Store = {
 };
 
 describe('save', () => {
+  it('storySeen defaults to false, round-trips, and old saves load as false', () => {
+    expect(defaultSave().storySeen).toBe(false);
+    const store = memoryStore();
+    writeSave(store, { ...defaultSave(), storySeen: true });
+    expect(loadSave(store).storySeen).toBe(true);
+    const old = memoryStore({ [SAVE_KEY]: JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, settings: {} }) });
+    expect(loadSave(old).storySeen).toBe(false);
+    expect(loadSave(memoryStore({ [SAVE_KEY]: JSON.stringify({ version: 1, storySeen: 'yes' }) })).storySeen).toBe(false);
+  });
   it('uses the agreed key', () => {
     expect(SAVE_KEY).toBe('afterlife.save.v1');
   });
@@ -35,6 +44,7 @@ describe('save', () => {
       version: 1,
       completed: ['bus-stop'],
       tutorialDone: false,
+      storySeen: false,
       stars: {},
       settings: { reducedMotion: false, muted: true, volume: 0.8 },
     });

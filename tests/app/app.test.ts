@@ -10,6 +10,7 @@ const memoryStore = (initial: Record<string, string> = {}): Store & { data: Reco
   return { data, getItem: (k) => data[k] ?? null, setItem: (k, v) => void (data[k] = v) };
 };
 const opts = { demoIntervalMs: null, prefersReducedMotion: false };
+const seen = JSON.stringify({ version: 1, completed: [], storySeen: true, settings: {} });
 const click = (sel: string) => (document.querySelector(sel) as HTMLElement).click();
 
 let root: HTMLElement;
@@ -28,18 +29,18 @@ describe('App', () => {
     expect(root.querySelector('[data-nav="select"]')).not.toBeNull();
   });
 
-  it('lists the five places with only the first open', () => {
-    new App(root, stage, memoryStore(), LEVELS, opts);
+  it('lists the eight places with only the first open', () => {
+    new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts);
     click('[data-nav="select"]');
     const cards = root.querySelectorAll<HTMLButtonElement>('.level-card');
-    expect(cards).toHaveLength(5);
+    expect(cards).toHaveLength(8);
     expect(cards[0]!.disabled).toBe(false);
     expect(cards[1]!.disabled).toBe(true);
     expect(cards[0]!.textContent).toContain('Bus Stop');
   });
 
   it('starts a level with the HUD and an interactive stage', () => {
-    const app = new App(root, stage, memoryStore(), LEVELS, opts);
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts);
     click('[data-nav="select"]');
     click('[data-level="0"]');
     expect(app.screen).toBe('play');
@@ -123,7 +124,7 @@ describe('App sound', () => {
 
   it('keeps calling unlock on gestures until audio is ready', () => {
     const { sound, calls } = fakeSound();
-    new App(root, stage, memoryStore(), LEVELS, opts, sound);
+    new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts, sound);
     click('[data-nav="select"]');
     click('[data-nav="title"]');
     expect(calls.unlock).toBe(2);
@@ -144,7 +145,7 @@ describe('App sound', () => {
 
   it('keeps working when sound unlock throws', () => {
     const broken: Sound = { ...fakeSound().sound, unlock: () => { throw new Error('no audio'); } };
-    const app = new App(root, stage, memoryStore(), LEVELS, opts, broken);
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts, broken);
     click('[data-nav="select"]');
     expect(app.screen).toBe('select');
   });
@@ -161,7 +162,7 @@ describe('App sound', () => {
   });
 
   it('persists sound settings from the settings screen and the HUD mute button', () => {
-    const store = memoryStore();
+    const store = memoryStore({ [SAVE_KEY]: seen });
     const { sound, calls } = fakeSound();
     new App(root, stage, store, LEVELS, opts, sound);
     click('[data-nav="settings"]');
@@ -393,9 +394,126 @@ describe('App v1.2.1 polish', () => {
     vi.useRealTimers();
   });
   it('level cards announce their stars in the button label', () => {
-    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, stars: { 'bus-stop': 2 }, settings: {} });
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, stars: { 'bus-stop': 2 }, storySeen: true, settings: {} });
     new App(root, stage, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts);
     click('[data-nav="select"]');
     expect(root.querySelector('[data-level="0"]')!.getAttribute('aria-label')).toBe('Bus Stop, Restored, 2 of 3 stars');
+  });
+});
+
+describe('App v1.3 story and Pip', () => {
+  const seenDone = JSON.stringify({ version: 1, completed: [], tutorialDone: true, storySeen: true, settings: {} });
+
+  it('the first Play shows the story; Skip saves storySeen and goes to the places', () => {
+    const store = memoryStore();
+    const app = new App(root, stage, store, LEVELS, opts);
+    click('[data-nav="select"]');
+    expect(app.screen).toBe('story');
+    expect(root.querySelector('.story-caption')!.textContent).toBe('The city went quiet.');
+    click('[data-story="skip"]');
+    expect(app.screen).toBe('select');
+    expect(JSON.parse(store.data[SAVE_KEY]!).storySeen).toBe(true);
+    click('[data-nav="title"]');
+    click('[data-nav="select"]');
+    expect(app.screen).toBe('select');
+  });
+
+  it('the title Story button replays it, plays the swell on the last beat and returns to the title', () => {
+    vi.useFakeTimers();
+    const { sound, calls } = fakeSound();
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts, sound);
+    click('[data-nav="story"]');
+    expect(app.screen).toBe('story');
+    vi.advanceTimersByTime(20000);
+    expect(calls.cues).toContain('milestone');
+    click('[data-story="begin"]');
+    expect(app.screen).toBe('title');
+    vi.useRealTimers();
+  });
+
+  it('without storage the story still ends, leads on and does not repeat this session', () => {
+    const app = new App(root, stage, null, LEVELS, opts);
+    click('[data-nav="select"]');
+    click('[data-story="skip"]');
+    expect(app.screen).toBe('select');
+    click('[data-nav="title"]');
+    click('[data-nav="select"]');
+    expect(app.screen).toBe('select');
+  });
+
+  it('leaving mid-story stops it: no late navigation', () => {
+    vi.useFakeTimers();
+    const app = new App(root, stage, memoryStore(), LEVELS, opts);
+    click('[data-nav="select"]');
+    app.startLevel(1);
+    vi.advanceTimersByTime(30000);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(app.screen).toBe('play');
+    expect(root.querySelector('.story')).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('Pip points through the tutorial and rests idle once it is skipped', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts);
+    app.startLevel(0);
+    expect(root.querySelector('.pip')!.className).toBe('pip mood-point');
+    click('[data-action="skip-tutorial"]');
+    expect(root.querySelector('.pip')!.className).toBe('pip mood-idle');
+  });
+
+  it('Pip waves and speaks when a place is restored', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(0);
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    expect(root.querySelector('.pip')!.className).toBe('pip mood-wave');
+    expect(root.querySelector('.pip-line')!.textContent).toBe('We did it! Look at it bloom.');
+  });
+
+  it('Pip points at the idle hint', () => {
+    vi.useFakeTimers();
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    vi.advanceTimersByTime(3100);
+    expect(root.querySelector('.pip-line')!.textContent).toBe('Try the glowing spot!');
+    expect(root.querySelector('.pip')!.className).toBe('pip mood-point');
+    vi.useRealTimers();
+  });
+
+  it('there is one Pip per level, removed when leaving', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(0);
+    app.startLevel(1);
+    expect(root.querySelectorAll('.pip')).toHaveLength(1);
+    click('[data-action="menu"]');
+    expect(root.querySelector('.pip')).toBeNull();
+  });
+  it('Playground now leads on to the Laundromat', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(4);
+    for (const m of LEVELS[4]!.solution) app.controller!.play(m);
+    click('[data-action="next"]');
+    expect(app.controller!.level.id).toBe('laundromat');
+  });
+  it('the places screen counts restored places and marks locked ones with a lock', () => {
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], storySeen: true, settings: {} });
+    new App(root, stage, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts);
+    click('[data-nav="select"]');
+    expect(root.querySelector('.select-screen .progress-note')!.textContent).toBe(`1 of ${LEVELS.length} restored`);
+    expect(root.querySelector('[data-level="0"] .card-icon svg')).not.toBeNull();
+    expect(root.querySelector('[data-level="2"] .card-icon svg')).not.toBeNull();
+    expect(root.querySelector('[data-level="1"] .card-icon')).toBeNull();
+  });
+  it('Pip says the hint once per idle spell, not again when the hint switches the item', () => {
+    vi.useFakeTimers();
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    app.controller!.select({ kind: 'scrap', slot: 0 }); // the hint will switch back to a seed
+    vi.advanceTimersByTime(3100);
+    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(false);
+    vi.advanceTimersByTime(2600);
+    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(true);
+    vi.advanceTimersByTime(1500);
+    expect(root.querySelector<HTMLElement>('.pip-line')!.hidden).toBe(true);
+    vi.useRealTimers();
   });
 });

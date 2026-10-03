@@ -1,7 +1,9 @@
 import { PLANT_TYPES, RADIUS, SCRAP, type PlantType } from '../engine';
 import type { Selection, View } from '../game/controller';
 import type { CoachStep } from '../game/tutorial';
+import type { PipMood, PipSay } from '../game/pip';
 import { ICONS } from './icons';
+import { pipSvg } from './pip';
 
 export interface HudHandlers {
   select(sel: Selection): void;
@@ -28,6 +30,7 @@ export interface HudMeta {
 const LABEL: Record<PlantType, string> = { moss: 'Moss', vine: 'Vine', flower: 'Flower', bamboo: 'Bamboo' };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+export const PIP_LINE_MS = 2500;
 
 export class Hud {
   readonly el: HTMLElement;
@@ -42,6 +45,9 @@ export class Hud {
   private prevBonus: number | null = null;
   private toastUntil = 0;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly pipEl: HTMLElement;
+  private pipRest: PipMood = 'idle';
+  private pipTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     root: HTMLElement,
@@ -52,6 +58,11 @@ export class Hud {
     this.el.className = 'hud';
     root.appendChild(this.el);
     this.el.addEventListener('click', (e) => this.onClick(e));
+    // Pip lives beside the HUD markup, so HUD redraws never restart its animation or wipe its line.
+    this.pipEl = document.createElement('div');
+    this.pipEl.className = 'pip mood-idle';
+    this.pipEl.innerHTML = `${pipSvg()}<p class="pip-line" aria-live="polite" hidden></p>`;
+    root.appendChild(this.pipEl);
   }
 
   render(view: View, meta: HudMeta): void {
@@ -102,8 +113,30 @@ export class Hud {
     if (this.last) this.render(this.last.view, this.last.meta);
   }
 
+  /** A line shows its mood for PIP_LINE_MS, then Pip returns to its resting mood. A silent say only changes the rest. */
+  setPip(say: PipSay): void {
+    if (say.line === null) {
+      this.pipRest = say.mood;
+      if (!this.pipTimer) this.pipEl.className = `pip mood-${say.mood}`;
+      return;
+    }
+    this.pipEl.className = `pip mood-${say.mood}`;
+    const line = this.pipEl.querySelector<HTMLElement>('.pip-line')!;
+    line.textContent = say.line;
+    line.hidden = false;
+    if (this.pipTimer) clearTimeout(this.pipTimer);
+    this.pipTimer = setTimeout(() => {
+      this.pipTimer = null;
+      line.hidden = true;
+      this.pipEl.className = `pip mood-${this.pipRest}`;
+    }, PIP_LINE_MS);
+  }
+
   destroy(): void {
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
+    if (this.pipTimer) clearTimeout(this.pipTimer);
+    this.pipTimer = null;
+    this.pipEl.remove();
     this.el.remove();
   }
 
@@ -158,24 +191,28 @@ export class Hud {
         const on = sel?.kind === 'scrap' && sel.slot === i;
         const reach = RADIUS[SCRAP[k].size];
         const cls = `${on ? 'selected' : ''} ${coach?.target === 'scrap' && i === 0 ? 'coach-target' : ''}`.trim();
-        return `<button data-action="scrap" data-slot="${i}" class="${cls}" aria-pressed="${on}">${ICONS[k] ?? ''}${cap(k)} <span class="reach" aria-label="reaches ${reach}">◇${reach}</span></button>`;
+        return `<button data-action="scrap" data-slot="${i}" class="${cls}" aria-pressed="${on}">${ICONS[k] ?? ''}<span class="label">${cap(k)}</span> <span class="reach" aria-label="reaches ${reach}">◇${reach}</span></button>`;
       })
       .join('');
     return `
 <header class="hud-top">
-  <button data-action="menu" aria-label="Back to places">☰</button>
+  <button data-action="menu" aria-label="Back to places">${ICONS.menu}</button>
   <div class="level-name">${esc(m.name)}</div>
   <div class="meter ${this.glowUntil > now ? 'glow' : ''} ${coach?.target === 'meter' ? 'coach-target' : ''}" role="progressbar" aria-label="Greenery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="meter-fill" style="width:${pct}%"></div><i class="tick" style="left:25%"></i><i class="tick" style="left:50%"></i><i class="tick" style="left:75%"></i></div>
-  <div class="batches" aria-label="${s.batches.length} batches left">${s.batches.map(() => '<i></i>').join('')}</div>
+  <span class="meter-pct" aria-hidden="true">${pct}%</span>
+  <div class="batches" title="Scrap batches left" aria-label="${s.batches.length} batches left">${ICONS.crate}<span class="n">${s.batches.length}</span></div>
 </header>
 ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coach.step} of ${coach.total}</span><p>${esc(coach.text)}</p><button data-action="skip-tutorial">Skip tutorial</button></div>` : `<p class="hint">${esc(m.hint)}</p>`}
-<div class="hud-tools">
+<div class="hud-tools" role="toolbar" aria-label="Tools">
   <button data-action="help" aria-label="How to play">${ICONS.help}</button>
-  <button data-action="undo" aria-label="Undo" ${v.canUndo ? '' : 'disabled'}>↶</button>
-  <button data-action="restart" aria-label="Restart level">⟲</button>
-  <button data-action="rotate-left" aria-label="Rotate left">◀</button>
-  <button data-action="rotate-right" aria-label="Rotate right">▶</button>
-  <button data-action="mute" aria-label="Sound" aria-pressed="${m.muted}">${m.muted ? '🔇' : '🔊'}</button>
+  <span class="sep"></span>
+  <button data-action="undo" aria-label="Undo" ${v.canUndo ? '' : 'disabled'}>${ICONS.undo}</button>
+  <button data-action="restart" aria-label="Restart level">${ICONS.restart}</button>
+  <span class="sep"></span>
+  <button data-action="rotate-left" aria-label="Rotate left">${ICONS['rotate-left']}</button>
+  <button data-action="rotate-right" aria-label="Rotate right">${ICONS['rotate-right']}</button>
+  <span class="sep"></span>
+  <button data-action="mute" aria-label="Sound" aria-pressed="${m.muted}">${m.muted ? ICONS['sound-off'] : ICONS['sound-on']}</button>
 </div>
 <footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
 ${this.toastUntil > now ? '<div class="toast" role="status">Bonus pack: +2 moss, +1 tyre</div>' : ''}
@@ -184,14 +221,14 @@ ${this.overlay(v, m)}`;
 
   private overlay(v: View, m: HudMeta): string {
     if (this.error) {
-      return `<div class="overlay" role="dialog" aria-label="Error"><h2>Something went wrong</h2><div class="actions"><button data-action="restart" class="primary">Restart level</button><button data-action="menu">Back to places</button></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Error"><div class="panel"><h2>Something went wrong</h2><div class="actions"><button data-action="restart" class="primary">Restart level</button><button data-action="menu">Back to places</button></div></div></div>`;
     }
     if (v.overlay === 'restored') {
       const primary = m.hasNext ? '<button data-action="next" class="primary">Next place</button>' : '<button data-action="menu" class="primary">Back to places</button>';
-      return `<div class="overlay" role="dialog" aria-label="Scene restored"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p><div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p><div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
     }
     if (v.overlay === 'rests') {
-      return `<div class="overlay" role="dialog" aria-label="The garden rests"><h2>The garden rests…</h2><p>Nothing more can grow here. Undo a few moves, or restart.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="The garden rests"><div class="panel"><h2>The garden rests…</h2><p>Nothing more can grow here. Undo a few moves, or restart.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div></div>`;
     }
     return '';
   }

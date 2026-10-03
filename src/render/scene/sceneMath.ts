@@ -98,7 +98,7 @@ export function swayFor(type: PlantType, x: number, y: number): { amplitude: num
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
 
 export function skyColors(progress: number): { top: string; bottom: string } {
-  return { top: hex(lerpColor(0x2b3036, 0x3b4a3e, progress)), bottom: hex(lerpColor(0x3d3a33, 0x7a6a45, progress)) };
+  return { top: hex(lerpColor(0x2c3540, 0x4f7262, progress)), bottom: hex(lerpColor(0x4a4336, 0xd2a85e, progress)) };
 }
 
 /** Outer corners of the board's diamond in world pixels (before island depth). */
