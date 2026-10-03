@@ -214,12 +214,16 @@ export async function badgePng(b: BadgeInput): Promise<Blob> {
 
 export type ShareResult = 'shared' | 'saved' | 'cancelled';
 
-/** Opens the share sheet with the badge image where files can be shared; otherwise downloads it. */
-export async function shareBadge(b: BadgeInput & { stars: 1 | 2 | 3; date: string }): Promise<ShareResult> {
+/** On phones and tablets, opens the share sheet with the badge image; on computers (or without file sharing), downloads it. */
+export async function shareBadge(
+  b: BadgeInput & { stars: 1 | 2 | 3; date: string },
+  // Phones and tablets get the share sheet; computers (mouse/trackpad) get a plain download.
+  opts: { touch?: boolean } = { touch: typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches },
+): Promise<ShareResult> {
   const blob = await internals.png(b);
   const file = new File([blob], badgeFileName(b.id), { type: 'image/png' });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-  if (nav.canShare?.({ files: [file] }) && nav.share) {
+  if (opts.touch && nav.canShare?.({ files: [file] }) && nav.share) {
     try {
       await nav.share({ files: [file], title: `Afterlife — ${b.name} badge`, text: shareText(b.name, b.stars) });
       return 'shared';

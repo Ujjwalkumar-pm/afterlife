@@ -66,3 +66,7 @@
   - the Badges screen shows 8 entries with earned and locked states;
   - Reset game clears badges.
 - **Browser:** screenshots of the confetti, the win panel badge, the Badges screen (desktop and phone) and all 8 badges in a sheet; the PNG export; no console errors.
+
+## 6. Change log (3 Oct 2026, after release checks)
+- **Computers download the badge image; phones and tablets get the share sheet.** The test is `(pointer: coarse)`.
+- **Why:** desktop Chrome on a Mac also reports that it can share files, but its system share menu is not what someone clicking "Share badge" on a computer expects.

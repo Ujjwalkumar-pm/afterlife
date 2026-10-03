@@ -17,7 +17,7 @@ describe('shareBadge', () => {
     const share = vi.fn().mockResolvedValue(undefined);
     nav.canShare = () => true;
     nav.share = share;
-    expect(await badges.shareBadge(b)).toBe('shared');
+    expect(await badges.shareBadge(b, { touch: true })).toBe('shared');
     expect(share.mock.calls[0]![0].text).toBe(badges.shareText('Rooftop', 2));
     expect(share.mock.calls[0]![0].files[0].name).toBe('afterlife-rooftop-badge.png');
   });
@@ -27,7 +27,7 @@ describe('shareBadge', () => {
     for (const name of ['AbortError', 'InvalidStateError']) {
       nav.share = vi.fn().mockRejectedValue(Object.assign(new Error('x'), { name }));
       const click = vi.spyOn(HTMLAnchorElement.prototype, 'click');
-      expect(await badges.shareBadge(b)).toBe('cancelled');
+      expect(await badges.shareBadge(b, { touch: true })).toBe('cancelled');
       expect(click).not.toHaveBeenCalled();
     }
   });
@@ -35,6 +35,16 @@ describe('shareBadge', () => {
     png();
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     expect(await badges.shareBadge(b)).toBe('saved');
+    expect(click).toHaveBeenCalledTimes(1);
+  });
+  it('on a computer (fine pointer) it downloads even if the browser could share', async () => {
+    png();
+    nav.canShare = () => true;
+    const share = vi.fn();
+    nav.share = share;
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    expect(await badges.shareBadge(b, { touch: false })).toBe('saved');
+    expect(share).not.toHaveBeenCalled();
     expect(click).toHaveBeenCalledTimes(1);
   });
 });
