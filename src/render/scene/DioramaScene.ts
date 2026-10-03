@@ -12,6 +12,8 @@ import { Celebration } from './celebration';
 import { Effects } from './effects';
 import { diffTiles, plantTextureKey, plantVariant, rippleDelay, swayFor, TextureLru, washDelays } from './sceneMath';
 import { TapGate } from './tapGate';
+import { TIMING } from './timing';
+import { comboFor, milestonesCrossed } from '../../game/scoring';
 
 export const TILE_W = 64;
 export const TILE_H = 32;
@@ -90,6 +92,7 @@ export class DioramaScene extends Phaser.Scene {
   private progressDrawn = -1;
   private highlight: Pos | null = null;
   private highlightPulse: Phaser.Tweens.Tween | null = null;
+  private lastProgress = 0;
   private inputEnabled = true;
 
   constructor() {
@@ -154,6 +157,7 @@ export class DioramaScene extends Phaser.Scene {
       return;
     }
     this.lastRotation = ctrl.view.rotation;
+    this.lastProgress = ctrl.view.progress;
     this.unsubscribe = ctrl.onChange((view, events) => this.onChange(view, events));
     this.build(ctrl.view);
     this.fit();
@@ -312,6 +316,9 @@ export class DioramaScene extends Phaser.Scene {
     if (Math.abs(view.progress - this.progressDrawn) > 0.001) this.drawGrounds(view);
     this.drawPreview(view);
     this.drawLabels(view);
+    const crossed = milestonesCrossed(this.lastProgress, view.progress);
+    this.lastProgress = view.progress;
+    if (crossed.length > 0 && this.opts.interactive && !this.opts.reducedMotion) this.effects.milestone(this.area(view));
     if (events.some((e) => e.type === 'won') && this.opts.interactive && !this.opts.reducedMotion) this.celebrate(view, events);
   }
 
@@ -323,7 +330,7 @@ export class DioramaScene extends Phaser.Scene {
     const motion = !this.opts.reducedMotion;
     const scrapEv = events.find((e) => e.type === 'placedScrap');
     const radius = scrapEv && scrapEv.type === 'placedScrap' ? RADIUS[SCRAP[scrapEv.scrap].size] : 0;
-    const growLag = scrapEv ? 350 : 0;
+    const growLag = scrapEv ? TIMING.growLag : 0;
     const spreadTo = new Set(events.flatMap((e) => (e.type === 'spread' ? [key(e.to)] : [])));
     const harvest = events.find((e) => e.type === 'harvested');
     for (const ch of changes) {
@@ -342,22 +349,22 @@ export class DioramaScene extends Phaser.Scene {
       this.setPlant(tv, s, v);
       const plant = tv.plant;
       if (!motion || !plant) continue;
-      const delay = (scrapEv ? rippleDelay(scrapEv.pos, ch.pos, radius) : 0) + growLag;
+      const delay = (scrapEv ? rippleDelay(scrapEv.pos, ch.pos, radius, TIMING.ripple) : 0) + growLag;
       switch (ch.plant) {
         case 'added':
           if (spreadTo.has(key(ch.pos))) {
             plant.setScale(0);
-            this.tweens.add({ targets: plant, scale: BASE, delay: delay + 150, duration: 450, ease: 'Back.Out' });
+            this.tweens.add({ targets: plant, scale: BASE, delay: delay + TIMING.sproutDelay, duration: TIMING.sprout, ease: 'Back.Out' });
           } else {
-            this.effects.pop(plant, 0.6, 250, BASE);
+            this.effects.pop(plant, 0.6, TIMING.seedPop, BASE);
             this.effects.burst(c.x, c.y, PALETTE.seed, 5, 30);
           }
           break;
         case 'grew':
-          this.tweens.add({ targets: plant, scaleY: { from: 0.2 * BASE, to: BASE }, delay, duration: 500, ease: 'Back.Out' });
+          this.tweens.add({ targets: plant, scaleY: { from: 0.2 * BASE, to: BASE }, delay, duration: TIMING.grow, ease: 'Back.Out' });
           break;
         case 'bloomed':
-          this.tweens.add({ targets: plant, scale: { from: 0.6 * BASE, to: BASE }, delay, duration: 600, ease: 'Back.Out' });
+          this.tweens.add({ targets: plant, scale: { from: 0.6 * BASE, to: BASE }, delay, duration: TIMING.bloom, ease: 'Back.Out' });
           break;
         case 'unbloomed':
           if (harvest && harvest.type === 'harvested') this.flyHarvest(c, harvest.seed);
@@ -365,6 +372,12 @@ export class DioramaScene extends Phaser.Scene {
         default:
           break;
       }
+    }
+    const combo = comboFor(events);
+    if (combo && scrapEv) {
+      const c = toScreen(v, scrapEv.pos);
+      this.effects.floatText(c.x, c.y, `${combo.label} ×${combo.size}`, combo.label === 'Wild!', !motion);
+      if (motion) this.effects.burst(c.x, c.y, PALETTE.pollen, 8 + combo.size, 70);
     }
     this.world.sort('depth');
   }
@@ -422,14 +435,14 @@ export class DioramaScene extends Phaser.Scene {
     const v = this.isoOf(view);
     const last = [...events].reverse().find((e): e is Extract<GameEvent, { pos: Pos }> => 'pos' in e);
     const origin = last?.pos ?? { x: Math.floor(view.state.width / 2), y: Math.floor(view.state.height / 2) };
-    const wash = washDelays(view.state, origin);
+    const wash = washDelays(view.state, origin, TIMING.washStep);
     this.cameras.main.flash(600, 255, 248, 225);
     this.effects.shimmer(wash.map((w) => ({ ...toScreen(v, w.pos), delay: w.delay })));
     this.effects.fireflies(this.area(view));
     const lastDelay = wash.at(-1)?.delay ?? 0;
     this.pendingTurn = this.time.delayedCall(lastDelay + 300, () => {
       this.pendingTurn = null;
-      if (this.ctrl === ctrl) this.celebration.start(ctrl, 450);
+      if (this.ctrl === ctrl) this.celebration.start(ctrl, TIMING.turnStep);
     });
   }
 

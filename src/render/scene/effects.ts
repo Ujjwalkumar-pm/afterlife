@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { PALETTE } from '../palette';
 import type { Rect } from './atmosphere';
+import { TIMING } from './timing';
 
 type Movable = Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.Transform;
 const HW = 32;
@@ -39,7 +40,7 @@ export class Effects {
     this.scene.tweens.killTweensOf(target);
     const y = target.y;
     target.y = y - 40;
-    this.scene.tweens.add({ targets: target, y, duration: 350, ease: 'Bounce.Out', onComplete: onLand });
+    this.scene.tweens.add({ targets: target, y, duration: TIMING.drop, ease: 'Bounce.Out', onComplete: onLand });
   }
 
   /** A Manhattan ring of radius r on an isometric grid is an axis-aligned rectangle on screen. */
@@ -49,7 +50,7 @@ export class Effects {
     this.scene.tweens.addCounter({
       from: 0,
       to: 1,
-      duration: 400,
+      duration: TIMING.ripple,
       onUpdate: (tw) => {
         const t = tw.getValue() ?? 0;
         const r = t * (radius + 0.5);
@@ -76,8 +77,8 @@ export class Effects {
       this.scene.tweens.chain({
         targets: p,
         tweens: [
-          { x: x + Math.cos(a) * 18, y: y + Math.sin(a) * 12, duration: 150, ease: 'Quad.Out' },
-          { x: tx, y: ty, scale: 0.35, angle: 180, duration: 450, ease: 'Quad.In' },
+          { x: x + Math.cos(a) * 18, y: y + Math.sin(a) * 12, duration: TIMING.harvestBurst, ease: 'Quad.Out' },
+          { x: tx, y: ty, scale: 0.35, angle: 180, duration: TIMING.harvestFly, ease: 'Quad.In' },
         ],
         onComplete: () => p.destroy(),
       });
@@ -129,4 +130,41 @@ export class Effects {
       petals.destroy();
     });
   }
+
+    floatText(x: number, y: number, text: string, big: boolean, still: boolean): void {
+      const t = this.scene.add
+        .text(x, y - 30, text, { fontFamily: 'Nunito, sans-serif', fontSize: big ? '28px' : '20px', fontStyle: 'bold', color: '#fff6d8', stroke: '#2b3a1f', strokeThickness: 5 })
+        .setOrigin(0.5);
+      this.layer.add(t);
+      if (still) {
+        this.scene.time.delayedCall(TIMING.comboRise, () => t.destroy());
+        return;
+      }
+      t.setScale(0.6);
+      this.scene.tweens.add({ targets: t, scale: 1, duration: 180, ease: 'Back.Out' });
+      this.scene.tweens.add({ targets: t, y: t.y - 40, alpha: 0, delay: 250, duration: TIMING.comboRise - 250, ease: 'Quad.In', onComplete: () => t.destroy() });
+    }
+
+    milestone(area: Rect): void {
+      const cx = area.x + area.w / 2;
+      const cy = area.y + area.h / 2;
+      const ring = this.scene.add.graphics();
+      this.layer.add(ring);
+      this.scene.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: TIMING.milestoneRing,
+        onUpdate: (tw) => {
+          const t = tw.getValue() ?? 0;
+          ring.clear().lineStyle(4, PALETTE.firefly, 0.8 * (1 - t)).strokeEllipse(cx, cy, area.w * t, area.h * 0.6 * t);
+        },
+        onComplete: () => ring.destroy(),
+      });
+      for (let i = 0; i < 4; i++) {
+        const y = area.y + 20 + i * 14;
+        const bird = this.scene.add.image(area.x - 30 - i * 26, y, 'bird').setTint(0x2b2b28).setScale(0.9 - i * 0.1);
+        this.layer.add(bird);
+        this.scene.tweens.add({ targets: bird, x: area.x + area.w + 40, y: y - 30, duration: TIMING.birds, delay: i * 120, ease: 'Sine.InOut', onComplete: () => bird.destroy() });
+      }
+    }
 }

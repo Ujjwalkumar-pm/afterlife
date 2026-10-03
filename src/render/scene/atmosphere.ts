@@ -36,6 +36,16 @@ export function drawIsland(g: Phaser.GameObjects.Graphics, v: IsoView): void {
 }
 
 export function makeParticleTextures(scene: Phaser.Scene): void {
+  if (!scene.textures.exists('bird')) {
+    const g = scene.make.graphics({}, false);
+    g.lineStyle(2.2, 0xffffff, 1).beginPath();
+    g.moveTo(1, 6);
+    g.lineTo(7, 2);
+    g.lineTo(13, 6);
+    g.strokePath();
+    g.generateTexture('bird', 14, 8);
+    g.destroy();
+  }
   if (!scene.textures.exists('mote')) {
     const g = scene.make.graphics({}, false);
     g.fillStyle(0xffffff, 1).fillCircle(4, 4, 4);
