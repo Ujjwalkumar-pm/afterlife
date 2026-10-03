@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { defaultSave, loadSave, markCompleted, probeStorage, recordStars, SAVE_KEY, writeSave, type Store } from '../../src/save/save';
+import { defaultSave, loadSave, markCompleted, probeStorage, recordBadge, recordStars, SAVE_KEY, writeSave, type Store } from '../../src/save/save';
 
 const memoryStore = (initial: Record<string, string> = {}): Store & { data: Record<string, string> } => {
   const data = { ...initial };
@@ -11,6 +11,24 @@ const throwingStore: Store = {
 };
 
 describe('save', () => {
+  it('vibration defaults to on and round-trips; old saves load as on', () => {
+    expect(defaultSave().settings.vibration).toBe(true);
+    const store = memoryStore();
+    writeSave(store, { ...defaultSave(), settings: { ...defaultSave().settings, vibration: false } });
+    expect(loadSave(store).settings.vibration).toBe(false);
+    expect(loadSave(memoryStore({ [SAVE_KEY]: JSON.stringify({ version: 1, settings: {} }) })).settings.vibration).toBe(true);
+  });
+  it('badges default to {}, round-trip, keep the first date, and drop bad entries', () => {
+    expect(defaultSave().badges).toEqual({});
+    let d = recordBadge(defaultSave(), 'rooftop', '2026-10-03');
+    d = recordBadge(d, 'rooftop', '2026-10-09');
+    expect(d.badges).toEqual({ rooftop: { date: '2026-10-03' } });
+    const store = memoryStore();
+    writeSave(store, d);
+    expect(loadSave(store).badges).toEqual({ rooftop: { date: '2026-10-03' } });
+    const bad = memoryStore({ [SAVE_KEY]: JSON.stringify({ version: 1, badges: { a: { date: '2026-01-02' }, b: { date: 'soon' }, c: 3 } }) });
+    expect(loadSave(bad).badges).toEqual({ a: { date: '2026-01-02' } });
+  });
   it('hintsUsed defaults to {}, round-trips, and drops bad entries', () => {
     expect(defaultSave().hintsUsed).toEqual({});
     const store = memoryStore();
@@ -37,7 +55,7 @@ describe('save', () => {
   });
   it('round-trips through writeSave and loadSave', () => {
     const store = memoryStore();
-    const data = { ...defaultSave(), completed: ['bus-stop'], settings: { reducedMotion: true, muted: true, volume: 0.3 } };
+    const data = { ...defaultSave(), completed: ['bus-stop'], settings: { reducedMotion: true, muted: true, volume: 0.3, vibration: true } };
     expect(writeSave(store, data)).toBe(true);
     expect(loadSave(store)).toEqual(data);
   });
@@ -55,7 +73,8 @@ describe('save', () => {
       storySeen: false,
       stars: {},
       hintsUsed: {},
-      settings: { reducedMotion: false, muted: true, volume: 0.8 },
+      badges: {},
+      settings: { reducedMotion: false, muted: true, volume: 0.8, vibration: true },
     });
   });
   it('writeSave returns false when storage throws or is missing', () => {

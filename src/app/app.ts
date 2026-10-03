@@ -1,7 +1,9 @@
 import type { LevelData, Pos } from '../engine';
 import { PlayController } from '../game/controller';
 import type { AttachOptions } from '../render/scene/DioramaScene';
-import { defaultSave, loadSave, markCompleted, recordStars, writeSave, type SaveData, type Store } from '../save/save';
+import { defaultSave, loadSave, markCompleted, recordBadge, recordStars, writeSave, type SaveData, type Store } from '../save/save';
+import { badgeSvg, shareBadge as realShareBadge, type ShareResult } from '../ui/badges';
+import { launchConfetti } from '../ui/confetti';
 import { Hud } from '../ui/hud';
 import { cuesFor } from '../audio/cues';
 import { planTutorial, Tutorial } from '../game/tutorial';
@@ -23,8 +25,25 @@ export interface AppOptions {
   /** Milliseconds between title-screen demo moves; null disables the demo (tests). */
   demoIntervalMs: number | null;
   prefersReducedMotion: boolean;
+  /** Device vibration (default: navigator.vibrate when available). */
+  haptics?: (pattern: number[]) => void;
+  /** Full-screen confetti (default: canvas burst; told when motion must stay still). */
+  confetti?: (reducedMotion: boolean) => void;
+  /** Share or save a badge image (default: share sheet, else download). */
+  shareBadge?: (b: BadgePayload) => Promise<ShareResult>;
 }
-export type Screen = 'title' | 'select' | 'settings' | 'credits' | 'howto' | 'play' | 'story';
+export interface BadgePayload {
+  id: string;
+  name: string;
+  stars: 1 | 2 | 3;
+  date: string;
+}
+export const WIN_BUZZ = [60, 40, 60, 40, 140];
+/** Today as YYYY-MM-DD in the player's own time zone. */
+export function todayIso(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+export type Screen = 'title' | 'select' | 'settings' | 'credits' | 'howto' | 'play' | 'story' | 'badges';
 type MenuScreen = Exclude<Screen, 'play' | 'story'>;
 
 const STATUS_TEXT: Record<LevelStatus, string> = { locked: 'Locked', open: 'Ready', completed: 'Restored' };
@@ -50,6 +69,10 @@ export class App {
   private nudge = false;
   private lastStars: 1 | 2 | 3 | null = null;
   private story: StoryPlayer | null = null;
+  /** One polite live region that survives screen changes, so messages are reliably read aloud. */
+  private readonly live: HTMLElement = Object.assign(document.createElement('div'), { className: 'app-live' });
+  private sharing = false;
+  private badgeNew = false;
   private resetDialog: HTMLElement | null = null;
   private readonly onResetKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') this.closeResetConfirm();
@@ -66,7 +89,15 @@ export class App {
     private readonly options: AppOptions,
     private readonly sound: Sound = silentSound,
   ) {
+    this.live.setAttribute('aria-live', 'polite');
+    this.live.setAttribute('role', 'status');
     this.save = loadSave(store);
+    // Places restored before badges existed get theirs now, dated today.
+    const missing = this.save.completed.filter((id) => !this.save.badges[id]);
+    if (missing.length) {
+      for (const id of missing) this.save = recordBadge(this.save, id, todayIso());
+      writeSave(store, this.save);
+    }
     this.sound.setMuted(this.save.settings.muted);
     this.sound.setVolume(this.save.settings.volume);
     this.sound.setAmbient(true);
@@ -88,6 +119,11 @@ export class App {
     this.show('title');
   }
 
+  /** The Vibration switch only shows where the device can vibrate (not iPhone Safari). */
+  get canVibrate(): boolean {
+    return !!this.options.haptics || (typeof navigator !== 'undefined' && 'vibrate' in navigator);
+  }
+
   get reducedMotion(): boolean {
     return this.options.prefersReducedMotion || this.save.settings.reducedMotion;
   }
@@ -97,6 +133,7 @@ export class App {
     this.screen = screen;
     this.sound.setProgress(0);
     this.root.innerHTML = this.template(screen);
+    this.root.appendChild(this.live);
     if (screen === 'title') this.startDemo();
     else this.stage.show(null, { reducedMotion: this.reducedMotion, interactive: false });
   }
@@ -108,15 +145,18 @@ export class App {
     this.screen = 'play';
     this.levelIndex = index;
     this.root.innerHTML = '';
+    this.root.appendChild(this.live);
     const ctrl = new PlayController(level, { assist: true });
     this.controller = ctrl;
     this.hintsUsed = this.save.hintsUsed[level.id] ?? 0;
     this.tutorial = index === 0 && (opts.tutorial || !this.save.tutorialDone) ? new Tutorial(planTutorial(level)) : null;
     this.tutorial?.update(ctrl.view, []);
+    let celebrated = false;
     const hud = new Hud(this.root, {
       select: (sel) => ctrl.select(sel),
       undo: () => ctrl.undo(),
       restart: () => {
+        celebrated = false;
         ctrl.restart();
         // Restarting an untouched board changes nothing, so clear a shown hint explicitly.
         this.scheduleHint();
@@ -129,10 +169,11 @@ export class App {
       toggleMute: () => this.toggleMute(),
       help: () => this.openHowTo(),
       skipTutorial: () => this.finishTutorial(),
+      shareBadge: () => void this.shareBadgeOf(level.id),
       hint: () => this.useHint(),
     });
     this.hud = hud;
-    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null, hintsLeft: MAX_HINTS - this.hintsUsed, hintAvailable: !this.tutorial && ctrl.view.overlay === 'none' && !ctrl.view.state.won, nudge: this.nudge, hintsUsed: this.hintsUsed });
+    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null, hintsLeft: MAX_HINTS - this.hintsUsed, hintAvailable: !this.tutorial && ctrl.view.overlay === 'none' && !ctrl.view.state.won, nudge: this.nudge, hintsUsed: this.hintsUsed, badge: ctrl.view.overlay === 'restored' ? this.winBadge(level.id, level.name) : undefined });
     let lastOverlay = ctrl.view.overlay;
     let lastProgress = ctrl.view.progress;
     let hintState = ctrl.view.state;
@@ -148,7 +189,12 @@ export class App {
           const { [level.id]: _done, ...rest } = this.save.hintsUsed;
           this.save = { ...this.save, hintsUsed: rest };
         }
+        this.badgeNew = !this.save.badges[level.id];
+        this.save = recordBadge(this.save, level.id, todayIso());
         writeSave(this.store, this.save);
+        // One celebration per attempt: undoing past the win and winning again doesn't buzz twice.
+        if (!celebrated) this.celebrateWin();
+        celebrated = true;
       }
       const cues = cuesFor(events);
       const milestone = milestonesCrossed(lastProgress, view.progress).length > 0;
@@ -286,13 +332,65 @@ export class App {
     this.sound.setVolume(this.save.settings.volume);
     this.applyMotionClass();
     this.show('title');
+    this.toast('Game reset. A fresh start.');
+    this.root.querySelector<HTMLElement>('[data-nav="select"]')?.focus();
+  }
+
+  private toast(text: string): void {
+    this.root.querySelector('.app-toast')?.remove();
+    if (!this.live.isConnected) this.root.appendChild(this.live);
+    this.live.textContent = text;
     const toast = document.createElement('div');
     toast.className = 'toast app-toast';
-    toast.setAttribute('role', 'status');
-    toast.textContent = 'Game reset. A fresh start.';
+    toast.setAttribute('aria-hidden', 'true');
+    toast.textContent = text;
     this.root.appendChild(toast);
     setTimeout(() => toast.remove(), 2500);
-    this.root.querySelector<HTMLElement>('[data-nav="select"]')?.focus();
+  }
+
+  /** A restored place: a buzz (if allowed) and confetti over everything. */
+  private celebrateWin(): void {
+    try {
+      if (this.save.settings.vibration) (this.options.haptics ?? ((p) => navigator.vibrate?.(p)))(WIN_BUZZ);
+    } catch {
+      /* vibration is a nicety */
+    }
+    try {
+      (this.options.confetti ?? ((still) => launchConfetti(this.root, { reducedMotion: still })))(this.reducedMotion);
+    } catch (err) {
+      console.warn('[Afterlife] confetti failed', err);
+    }
+  }
+
+  /** The win panel's badge block: newly earned, or "your badge" on a replay (with the best when this try scored lower). */
+  private winBadge(id: string, name: string): { svg: string; title: string; note?: string } | undefined {
+    const b = this.badgeFor(id);
+    if (!b) return undefined;
+    const note = this.lastStars !== null && this.lastStars < b.stars ? `Best: ${'★'.repeat(b.stars)}${'☆'.repeat(3 - b.stars)}` : undefined;
+    return { svg: badgeSvg(b), title: this.badgeNew ? `You earned the ${name} badge` : `Your ${name} badge`, note };
+  }
+
+  private badgeFor(id: string): BadgePayload | null {
+    const level = this.levels.find((l) => l.id === id);
+    const date = this.save.badges[id]?.date;
+    if (!level || !date) return null;
+    return { id, name: level.name, stars: this.save.stars[id] ?? 1, date };
+  }
+
+  private async shareBadgeOf(id: string): Promise<void> {
+    const b = this.badgeFor(id);
+    if (!b || this.sharing) return; // a second tap while the sheet opens would share twice
+    this.sharing = true;
+    try {
+      const result = await (this.options.shareBadge ?? realShareBadge)(b);
+      if (result === 'shared') this.toast('Shared!');
+      else if (result === 'saved') this.toast('Badge saved as an image');
+    } catch (err) {
+      console.warn('[Afterlife] badge share failed', err);
+      this.toast("Couldn't share the badge. Please try again.");
+    } finally {
+      this.sharing = false;
+    }
   }
 
   /** The intro story. Seen once on the first Play (saved), replayable from the title. */
@@ -301,6 +399,7 @@ export class App {
     this.screen = 'story';
     this.sound.setProgress(0);
     this.root.innerHTML = '';
+    this.root.appendChild(this.live);
     this.stage.show(null, { reducedMotion: this.reducedMotion, interactive: false });
     this.story = new StoryPlayer(this.root, {
       onBeat: (n) => {
@@ -331,6 +430,8 @@ export class App {
     if (act === 'reset-ask') return this.openResetConfirm();
     if (act === 'reset-cancel') return this.closeResetConfirm();
     if (act === 'reset-confirm') return this.resetGame();
+    const shareEl = el.closest<HTMLElement>('[data-share-badge]');
+    if (shareEl) return void this.shareBadgeOf(shareEl.dataset.shareBadge!);
     if (el.closest('[data-replay-tutorial]')) return this.startLevel(0, { tutorial: true });
     const nav = el.closest<HTMLElement>('[data-nav]');
     if (nav) {
@@ -474,6 +575,8 @@ export class App {
     switch (input.dataset.setting) {
       case 'reducedMotion':
         return this.updateSettings({ reducedMotion: input.checked });
+      case 'vibration':
+        return this.updateSettings({ vibration: input.checked });
       case 'sound':
         return this.updateSettings({ muted: !input.checked });
       case 'volume':
@@ -485,7 +588,7 @@ export class App {
     const back = '<button data-nav="title">Back</button>';
     switch (screen) {
       case 'title':
-        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu glass"><button data-nav="select" class="primary">Play</button><button data-nav="howto">How to Play</button><button data-nav="story">Story</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
+        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu glass"><button data-nav="select" class="primary">Play</button><button data-nav="howto">How to Play</button><button data-nav="story">Story</button><button data-nav="badges">Badges</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
       case 'select': {
         const statuses = levelStatuses(this.levels.map((l) => l.id), this.save.completed);
         const cards = this.levels
@@ -498,9 +601,21 @@ export class App {
         return `<main class="screen select-screen"><h2>Choose a place</h2><p class="progress-note">${done} of ${this.levels.length} restored</p><ol class="level-grid">${cards}</ol>${back}</main>`;
       }
       case 'settings':
-        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label><button data-nav="howto">How to play</button><button data-action="reset-ask" class="danger">Reset game</button>${back}</main>`;
+        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label>${this.canVibrate ? `<label class="toggle"><input type="checkbox" data-setting="vibration" ${this.save.settings.vibration ? 'checked' : ''}> Vibration</label>` : ''}<button data-nav="howto">How to play</button><button data-action="reset-ask" class="danger">Reset game</button>${back}</main>`;
       case 'howto':
         return this.howtoHtml(false);
+      case 'badges': {
+        const earned = this.levels.filter((l) => this.save.badges[l.id]).length;
+        const cards = this.levels
+          .map((l) => {
+            const b = this.badgeFor(l.id);
+            return b
+              ? `<li class="badge-card">${badgeSvg(b)}<button class="primary" data-share-badge="${l.id}" aria-label="Share the ${esc(l.name)} badge">Share</button></li>`
+              : `<li class="badge-card locked">${badgeSvg({ id: l.id, name: l.name, stars: null, date: null })}<p>Restore ${esc(l.name)} to earn</p></li>`;
+          })
+          .join('');
+        return `<main class="screen badges-screen"><h2>Badges</h2><p class="progress-note">${earned} of ${this.levels.length} earned</p><ul class="badge-grid">${cards}</ul>${back}</main>`;
+      }
       case 'credits':
         return `<main class="screen credits-screen"><h2>Credits</h2><p>Design and direction: Ujjwal Kumar</p><p>Built with Phaser, Tone.js and TypeScript. Plants and soundtrack are generated in code.</p><p>Props rendered from 3D models by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0).</p><p>Inspired by the mechanics of <em>Cloud Gardens</em> by Noio.</p>${back}</main>`;
     }

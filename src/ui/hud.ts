@@ -18,6 +18,7 @@ export interface HudHandlers {
   help(): void;
   skipTutorial(): void;
   hint(): void;
+  shareBadge(): void;
 }
 
 export interface HudMeta {
@@ -35,6 +36,8 @@ export interface HudMeta {
   nudge?: boolean;
   /** Hints used, shown on the win panel. */
   hintsUsed?: number;
+  /** The badge block on the win panel. */
+  badge?: { svg: string; title: string; note?: string };
 }
 
 const LABEL: Record<PlantType, string> = { moss: 'Moss', vine: 'Vine', flower: 'Flower', bamboo: 'Bamboo' };
@@ -192,6 +195,8 @@ export class Hud {
         return h.skipTutorial();
       case 'hint':
         return h.hint();
+      case 'share-badge':
+        return h.shareBadge();
     }
   }
 
@@ -251,7 +256,7 @@ ${this.overlay(v, m)}`;
     }
     if (v.overlay === 'restored') {
       const primary = m.hasNext ? '<button data-action="next" class="primary">Next place</button>' : '<button data-action="menu" class="primary">Back to places</button>';
-      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p>${m.hintsUsed ? `<p class="hints-used">Hints used: ${m.hintsUsed} of ${MAX_HINTS}</p>` : ''}<div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p>${m.hintsUsed ? `<p class="hints-used">Hints used: ${m.hintsUsed} of ${MAX_HINTS}</p>` : ''}${m.badge ? `<div class="badge-earned"><p>${esc(m.badge.title)}</p>${m.badge.svg}${m.badge.note ? `<p class="badge-note">${m.badge.note}</p>` : ''}</div>` : ''}<div class="actions">${primary}${m.badge ? '<button data-action="share-badge">Share badge</button>' : ''}<button data-action="keep">Keep decorating</button></div></div></div>`;
     }
     if (v.overlay === 'rests') {
       return `<div class="overlay" role="dialog" aria-label="The garden rests"><div class="panel"><h2>The garden rests…</h2><p>Nothing more can grow here. Undo a few moves, or restart.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div></div>`;
