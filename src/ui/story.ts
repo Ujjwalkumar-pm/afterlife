@@ -22,7 +22,7 @@ export function storySvg(): string {
     const y = (i * 53) % 200;
     return `<line x1="${x}" y1="${y}" x2="${x - 4}" y2="${y + 10}" style="animation-delay:-${(i % 9) / 10}s"/>`;
   }).join('');
-  return `<svg class="story-scene" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid meet" role="img" aria-label="A quiet, empty city where a small robot finds a seed">
+  return `<svg class="story-scene" viewBox="0 0 360 240" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A quiet, empty city where a small robot finds a seed">
 <rect class="story-sky" width="360" height="240"/>
 <g class="story-city" fill="#3a3d3a"><rect x="10" y="90" width="44" height="110"/><rect x="62" y="60" width="36" height="140"/><rect x="106" y="105" width="50" height="95"/><rect x="214" y="70" width="40" height="130"/><rect x="262" y="100" width="56" height="100"/><rect x="322" y="80" width="30" height="120"/></g>
 <g class="story-windows" fill="#4a4e48"><rect x="70" y="72" width="8" height="10"/><rect x="84" y="72" width="8" height="10"/><rect x="70" y="92" width="8" height="10"/><rect x="222" y="84" width="8" height="10"/><rect x="238" y="104" width="8" height="10"/><rect x="272" y="112" width="10" height="8"/></g>
