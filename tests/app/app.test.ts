@@ -29,11 +29,11 @@ describe('App', () => {
     expect(root.querySelector('[data-nav="select"]')).not.toBeNull();
   });
 
-  it('lists the five places with only the first open', () => {
+  it('lists the eight places with only the first open', () => {
     new App(root, stage, memoryStore({ [SAVE_KEY]: seen }), LEVELS, opts);
     click('[data-nav="select"]');
     const cards = root.querySelectorAll<HTMLButtonElement>('.level-card');
-    expect(cards).toHaveLength(5);
+    expect(cards).toHaveLength(8);
     expect(cards[0]!.disabled).toBe(false);
     expect(cards[1]!.disabled).toBe(true);
     expect(cards[0]!.textContent).toContain('Bus Stop');
@@ -486,5 +486,12 @@ describe('App v1.3 story and Pip', () => {
     expect(root.querySelectorAll('.pip')).toHaveLength(1);
     click('[data-action="menu"]');
     expect(root.querySelector('.pip')).toBeNull();
+  });
+  it('Playground now leads on to the Laundromat', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(4);
+    for (const m of LEVELS[4]!.solution) app.controller!.play(m);
+    click('[data-action="next"]');
+    expect(app.controller!.level.id).toBe('laundromat');
   });
 });
