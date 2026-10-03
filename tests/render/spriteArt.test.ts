@@ -19,14 +19,14 @@ describe('spriteFor', () => {
 });
 
 describe('the generated manifest', () => {
-  it('covers the 11 Kenney-matched objects, each a known object', () => {
-    expect(Object.keys(m).sort()).toEqual(['barrel', 'bench', 'bin', 'car', 'cone', 'crate', 'old-car', 'sign', 'station-sign', 'tyre', 'water-tank']);
+  it('covers the 13 Kenney-matched objects, each a known object', () => {
+    expect(Object.keys(m).sort()).toEqual(['barrel', 'bench', 'bin', 'car', 'cone', 'crate', 'dryer', 'old-car', 'sign', 'station-sign', 'tyre', 'washer', 'water-tank']);
     for (const name of Object.keys(m)) expect(hasObjectShape(name), name).toBe(true);
   });
   it('every manifest sprite has 4 PNGs on disk', () => {
     for (const name of Object.keys(m)) for (let r = 0; r < 4; r++) expect(existsSync(`public/sprites/${name}-r${r}.png`), `${name}-r${r}`).toBe(true);
   });
   it('lists one preload asset per object and rotation', () => {
-    expect(spriteAssets(m, '/')).toHaveLength(44);
+    expect(spriteAssets(m, '/')).toHaveLength(52);
   });
 });

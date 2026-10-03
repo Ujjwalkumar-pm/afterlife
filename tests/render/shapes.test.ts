@@ -18,6 +18,10 @@ describe('palette', () => {
 });
 
 describe('object shapes', () => {
+  it('has shapes for the v1.3 ruins', () => {
+    for (const name of ['washer', 'dryer', 'laundry-cart', 'old-bus', 'planter', 'chimney']) expect(hasObjectShape(name), name).toBe(true);
+    expect(objectTopHeight('chimney')).toBeGreaterThan(objectTopHeight('planter'));
+  });
   it('has a shape for every scrap kind and every ruin used by the levels', () => {
     for (const kind of SCRAP_KINDS) expect(hasObjectShape(kind), kind).toBe(true);
     for (const level of LEVELS) for (const ruin of level.ruins) expect(hasObjectShape(ruin.name), ruin.name).toBe(true);

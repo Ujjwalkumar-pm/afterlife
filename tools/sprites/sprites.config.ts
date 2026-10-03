@@ -23,4 +23,6 @@ export const SPRITES: SpriteSpec[] = [
   { name: 'barrel', file: 'survival-kit/barrel.glb', footprint: 0.45 },
   { name: 'bench', file: 'furniture-kit/bench.glb', footprint: 0.8, maxHeight: 0.6 },
   { name: 'bin', file: 'furniture-kit/trashcan.glb', footprint: 0.4 },
+  { name: 'washer', file: 'furniture-kit/washer.glb', footprint: 0.7 },
+  { name: 'dryer', file: 'furniture-kit/dryer.glb', footprint: 0.7 },
 ];

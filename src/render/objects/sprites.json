@@ -53,5 +53,15 @@
     "originY": 0.75,
     "topHeight": 29,
     "scale": 0.5
+  },
+  "washer": {
+    "originY": 0.75,
+    "topHeight": 33,
+    "scale": 0.5
+  },
+  "dryer": {
+    "originY": 0.75,
+    "topHeight": 33,
+    "scale": 0.5
   }
 }
