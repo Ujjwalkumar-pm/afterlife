@@ -18,12 +18,14 @@ export function applySky(progress: number): void {
 export function drawIsland(g: Phaser.GameObjects.Graphics, v: IsoView): void {
   g.clear();
   const { top, right, bottom, left } = islandCorners(v);
-  // Soft shadow: three stacked, slightly larger ellipses read as a blur under the island.
+  // Soft shadow: the board's own outline, dropped below the island and stacked at growing
+  // sizes so it reads as a blur and fits any board shape (square or long and thin).
   const cx = (left.x + right.x) / 2;
-  const cy = (top.y + bottom.y) / 2 + DEPTH + 10;
-  const w = (right.x - left.x) * 0.92;
-  const h = (bottom.y - top.y) * 0.7;
-  for (const k of [1.12, 1.06, 1]) g.fillStyle(0x000000, 0.12).fillEllipse(cx, cy, w * k, h * k);
+  const cy = (top.y + bottom.y) / 2;
+  for (const k of [1.1, 1.05, 1]) {
+    const pt = (p: { x: number; y: number }) => ({ x: cx + (p.x - cx) * k, y: cy + (p.y - cy) * k + DEPTH + 12 });
+    g.fillStyle(0x000000, 0.12).fillPoints(v2([pt(top), pt(right), pt(bottom), pt(left)]), true);
+  }
   const band = DEPTH / BANDS.length;
   BANDS.forEach((c, i) => {
     const y0 = i * band;
