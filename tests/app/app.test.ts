@@ -189,3 +189,75 @@ describe('App sound', () => {
     expect(root.textContent).toContain('Kenney');
   });
 });
+
+describe('App teaching', () => {
+  const coach = () => root.querySelector('.coach');
+
+  it('guides the first Bus Stop and highlights suggested tiles', () => {
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore(), LEVELS, opts);
+    app.startLevel(0);
+    expect(coach()!.textContent).toContain('Tap Moss in your tray.');
+    click('[data-action="seed"][data-plant="moss"]');
+    expect(coach()!.textContent).toContain('Tap a soil tile to plant it.');
+    expect(highlight).toHaveBeenLastCalledWith(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
+  });
+
+  it('skip saves tutorialDone and the coach does not return', () => {
+    const store = memoryStore();
+    const app = new App(root, stage, store, LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="skip-tutorial"]');
+    expect(coach()).toBeNull();
+    expect(JSON.parse(store.data[SAVE_KEY]!).tutorialDone).toBe(true);
+    app.startLevel(0);
+    expect(coach()).toBeNull();
+  });
+
+  it('leaving and returning restarts the tutorial from step 1 until done', () => {
+    const app = new App(root, stage, memoryStore(), LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="seed"][data-plant="moss"]');
+    click('[data-action="menu"]');
+    app.startLevel(0);
+    expect(coach()!.textContent).toContain('Step 1 of 6');
+  });
+
+  it('does not guide other levels', () => {
+    const app = new App(root, stage, memoryStore(), LEVELS, opts);
+    app.startLevel(1);
+    expect(coach()).toBeNull();
+  });
+
+  it('How to Play from the title shows 5 cards and can replay the tutorial', () => {
+    const saved = JSON.stringify({ version: 1, completed: [], tutorialDone: true, settings: { reducedMotion: false, muted: false, volume: 0.8 } });
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts);
+    click('[data-nav="howto"]');
+    expect(app.screen).toBe('howto');
+    expect(root.querySelectorAll('.howto-card')).toHaveLength(5);
+    click('[data-replay-tutorial]');
+    expect(app.screen).toBe('play');
+    expect(app.controller!.level.id).toBe('bus-stop');
+    expect(coach()).not.toBeNull();
+  });
+
+  it('the in-level ? opens How to Play over the level and Back keeps the level state', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: JSON.stringify({ version: 1, completed: [], tutorialDone: true, settings: {} }) }), LEVELS, opts);
+    app.startLevel(0);
+    const ctrl = app.controller!;
+    ctrl.play(LEVELS[0]!.solution[0]!);
+    click('[data-action="help"]');
+    expect(root.querySelectorAll('.howto-card')).toHaveLength(5);
+    click('[data-close-howto]');
+    expect(root.querySelector('.howto-card')).toBeNull();
+    expect(app.controller).toBe(ctrl);
+    expect(ctrl.view.canUndo).toBe(true);
+  });
+
+  it('marks the document for reduced motion', () => {
+    new App(root, stage, memoryStore(), LEVELS, { ...opts, prefersReducedMotion: true });
+    expect(document.documentElement.classList.contains('reduce-motion')).toBe(true);
+    new App(root, stage, memoryStore(), LEVELS, opts);
+    expect(document.documentElement.classList.contains('reduce-motion')).toBe(false);
+  });
+});

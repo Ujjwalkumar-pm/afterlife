@@ -4,6 +4,8 @@ import type { AttachOptions } from '../render/scene/DioramaScene';
 import { loadSave, markCompleted, writeSave, type SaveData, type Store } from '../save/save';
 import { Hud } from '../ui/hud';
 import { cuesFor } from '../audio/cues';
+import { planTutorial, Tutorial } from '../game/tutorial';
+import { ICONS } from '../ui/icons';
 import { silentSound, type Sound } from '../audio/sound';
 import { levelStatuses, type LevelStatus } from './progress';
 
@@ -16,7 +18,7 @@ export interface AppOptions {
   demoIntervalMs: number | null;
   prefersReducedMotion: boolean;
 }
-export type Screen = 'title' | 'select' | 'settings' | 'credits' | 'play';
+export type Screen = 'title' | 'select' | 'settings' | 'credits' | 'howto' | 'play';
 
 const STATUS_TEXT: Record<LevelStatus, string> = { locked: 'Locked', open: 'Ready', completed: 'Restored' };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -30,6 +32,9 @@ export class App {
   private unsubscribe: (() => void) | null = null;
   private demoTimer: ReturnType<typeof setInterval> | null = null;
   private renderHud: (() => void) | null = null;
+  private tutorial: Tutorial | null = null;
+  private tutorialTimer: ReturnType<typeof setTimeout> | null = null;
+  private howto: HTMLElement | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -55,6 +60,7 @@ export class App {
     root.addEventListener('pointerdown', unlock, true);
     root.addEventListener('click', unlock, true);
     this.sound.onChange(() => this.renderHud?.());
+    this.applyMotionClass();
     root.addEventListener('click', (e) => this.onClick(e));
     root.addEventListener('change', (e) => this.onInput(e));
     this.show('title');
@@ -73,7 +79,7 @@ export class App {
     else this.stage.show(null, { reducedMotion: this.reducedMotion, interactive: false });
   }
 
-  startLevel(index: number): void {
+  startLevel(index: number, opts: { tutorial?: boolean } = {}): void {
     const level = this.levels[index];
     if (!level) return this.show('select');
     this.teardown();
@@ -82,6 +88,7 @@ export class App {
     this.root.innerHTML = '';
     const ctrl = new PlayController(level);
     this.controller = ctrl;
+    this.tutorial = index === 0 && (opts.tutorial || !this.save.tutorialDone) ? new Tutorial(planTutorial(level)) : null;
     const hud = new Hud(this.root, {
       select: (sel) => ctrl.select(sel),
       undo: () => ctrl.undo(),
@@ -91,11 +98,11 @@ export class App {
       next: () => this.startLevel(this.levelIndex + 1),
       keepDecorating: () => ctrl.keepDecorating(),
       toggleMute: () => this.toggleMute(),
-      help: () => {},
-      skipTutorial: () => {},
+      help: () => this.openHowTo(),
+      skipTutorial: () => this.finishTutorial(),
     });
     this.hud = hud;
-    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available });
+    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null });
     let lastOverlay = ctrl.view.overlay;
     this.unsubscribe = ctrl.onChange((view, events) => {
       if (events.some((e) => e.type === 'won')) {
@@ -108,6 +115,14 @@ export class App {
       lastOverlay = view.overlay;
       this.sound.play(cues);
       this.sound.setProgress(view.progress);
+      if (this.tutorial) {
+        this.tutorial.update(view, events);
+        if (this.tutorial.done) this.finishTutorial();
+        else {
+          this.stage.highlight?.(this.tutorial.highlight);
+          if (this.tutorial.step === 6 && !this.tutorialTimer) this.tutorialTimer = setTimeout(() => this.finishTutorial(), 4000);
+        }
+      }
       hud.render(view, meta());
     });
     this.renderHud = () => hud.render(ctrl.view, meta());
@@ -122,6 +137,7 @@ export class App {
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       },
     });
+    this.stage.highlight?.(this.tutorial?.highlight ?? null);
   }
 
   showError(): void {
@@ -136,6 +152,12 @@ export class App {
     this.hud?.destroy();
     this.hud = null;
     this.renderHud = null;
+    if (this.tutorialTimer) clearTimeout(this.tutorialTimer);
+    this.tutorialTimer = null;
+    this.tutorial = null;
+    this.howto?.remove();
+    this.howto = null;
+    this.stage.highlight?.(null);
     this.controller = null;
   }
 
@@ -165,10 +187,56 @@ export class App {
 
   private onClick(e: Event): void {
     const el = e.target as HTMLElement;
+    if (el.closest('[data-close-howto]')) return this.closeHowTo();
+    if (el.closest('[data-replay-tutorial]')) return this.startLevel(0, { tutorial: true });
     const nav = el.closest<HTMLElement>('[data-nav]');
     if (nav) return this.show(nav.dataset.nav as Exclude<Screen, 'play'>);
     const card = el.closest<HTMLButtonElement>('[data-level]');
     if (card && !card.disabled) this.startLevel(Number(card.dataset.level));
+  }
+
+  private applyMotionClass(): void {
+    document.documentElement.classList.toggle('reduce-motion', this.reducedMotion);
+  }
+
+  private finishTutorial(): void {
+    if (this.tutorialTimer) clearTimeout(this.tutorialTimer);
+    this.tutorialTimer = null;
+    this.tutorial = null;
+    this.stage.highlight?.(null);
+    if (!this.save.tutorialDone) {
+      this.save = { ...this.save, tutorialDone: true };
+      writeSave(this.store, this.save);
+    }
+    this.renderHud?.();
+  }
+
+  openHowTo(): void {
+    if (this.howto) return;
+    const el = document.createElement('div');
+    el.className = 'howto-overlay';
+    el.innerHTML = this.howtoHtml(true);
+    this.root.appendChild(el);
+    this.howto = el;
+    el.querySelector<HTMLElement>('[data-close-howto]')?.focus();
+  }
+
+  private closeHowTo(): void {
+    this.howto?.remove();
+    this.howto = null;
+  }
+
+  private howtoHtml(inLevel: boolean): string {
+    const cards: [string, string, string][] = [
+      [ICONS.moss!, 'Plant', 'Pick a seed in the tray, then tap a tile.'],
+      [ICONS.tyre!, 'Feed', 'Scrap makes every plant inside its ring grow one step. Small scrap reaches 1 tile, medium 2, large 3.'],
+      [ICONS.flower!, 'Grow', 'Grown moss and vines spread to new tiles. Flowers bloom — tap a bloom for a free seed. Bamboo grows tall.'],
+      [ICONS.crate!, 'Restore', 'Cover the scene — the scrap too — to fill the meter.'],
+      [ICONS.bamboo!, 'Relax', 'No timer, no losing. Undo any time; rotate (◀ ▶ or Q/E) and zoom to look around.'],
+    ];
+    const list = cards.map(([icon, title, text]) => `<li class="howto-card">${icon}<h3>${title}</h3><p>${text}</p></li>`).join('');
+    const back = inLevel ? '<button data-close-howto class="primary">Back to the level</button>' : '<button data-nav="title" class="primary">Back</button>';
+    return `<main class="screen howto-screen"><h2>How to play</h2><ol class="howto-list">${list}</ol><div class="actions">${back}<button data-replay-tutorial>Replay tutorial</button></div></main>`;
   }
 
   private updateSettings(patch: Partial<SaveData['settings']>): void {
@@ -176,6 +244,7 @@ export class App {
     writeSave(this.store, this.save);
     this.sound.setMuted(this.save.settings.muted);
     this.sound.setVolume(this.save.settings.volume);
+    this.applyMotionClass();
   }
 
   private toggleMute(): void {
@@ -199,7 +268,7 @@ export class App {
     const back = '<button data-nav="title">Back</button>';
     switch (screen) {
       case 'title':
-        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu"><button data-nav="select" class="primary">Play</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
+        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu"><button data-nav="select" class="primary">Play</button><button data-nav="howto">How to Play</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
       case 'select': {
         const statuses = levelStatuses(this.levels.map((l) => l.id), this.save.completed);
         const cards = this.levels
@@ -211,7 +280,9 @@ export class App {
         return `<main class="screen select-screen"><h2>Choose a place</h2><ol class="level-grid">${cards}</ol>${back}</main>`;
       }
       case 'settings':
-        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label>${back}</main>`;
+        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label><button data-nav="howto">How to play</button>${back}</main>`;
+      case 'howto':
+        return this.howtoHtml(false);
       case 'credits':
         return `<main class="screen credits-screen"><h2>Credits</h2><p>Design and direction: Ujjwal Kumar</p><p>Built with Phaser, Tone.js and TypeScript. Plants and soundtrack are generated in code.</p><p>Props rendered from 3D models by <a href="https://kenney.nl" target="_blank" rel="noopener">Kenney</a> (CC0).</p><p>Inspired by the mechanics of <em>Cloud Gardens</em> by Noio.</p>${back}</main>`;
     }

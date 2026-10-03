@@ -73,3 +73,16 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 .coach-target { outline: 3px solid #f2c14e; outline-offset: 3px; animation: coach-pulse 1.2s ease-in-out infinite; }
 @keyframes coach-pulse { 50% { outline-color: rgba(242, 193, 78, 0.25); } }
 #ui .coach { pointer-events: auto; }
+.screen, .hud > * { animation: fade-in 250ms ease-out; }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.reduce-motion *, .reduce-motion *::before, .reduce-motion *::after { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+.howto-screen { background: var(--bg); }
+.howto-overlay { position: absolute; inset: 0; z-index: 5; pointer-events: auto; }
+.howto-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; width: min(900px, 100%); counter-reset: card; }
+.howto-card { background: #33342e; border-radius: var(--radius); padding: 16px; text-align: left; counter-increment: card; }
+.howto-card .icon { width: 40px; height: 40px; }
+.howto-card h3 { margin: 8px 0 4px; }
+.howto-card h3::before { content: counter(card) '. '; color: var(--accent); }
+.howto-card p { margin: 0; color: var(--muted); }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
