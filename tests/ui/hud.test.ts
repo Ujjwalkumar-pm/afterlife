@@ -228,3 +228,31 @@ describe('Hud v1.1', () => {
     expect(h.skipTutorial).toHaveBeenCalled();
   });
 });
+
+describe('Hud v1.2', () => {
+  it('shows meter ticks at 25/50/75', () => {
+    const c = new PlayController(makeLevel());
+    new Hud(root, handlers()).render(c.view, meta);
+    expect(root.querySelectorAll('.meter .tick')).toHaveLength(3);
+  });
+  it('shows stars on the restored panel', () => {
+    const c = new PlayController(makeLevel({ width: 3, height: 1, ground: ['...'], target: 0.3, batches: [['tyre', 'tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    new Hud(root, handlers()).render(c.view, { ...meta, stars: 2 });
+    expect(root.querySelectorAll('.overlay .star.on')).toHaveLength(2);
+    expect(root.querySelector('.overlay .stars')!.getAttribute('aria-label')).toBe('2 of 3 stars');
+  });
+  it('toasts "Bonus crate!" when bonusUsed rises', () => {
+    let t = 0;
+    const c = new PlayController(makeLevel({ batches: [['tyre']] }));
+    const hud = new Hud(root, handlers(), () => t);
+    hud.render(c.view, meta);
+    c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
+    hud.render(c.view, meta);
+    expect(root.querySelector('.toast')!.textContent).toBe('Bonus crate!');
+    t = 2000;
+    hud.render(c.view, meta);
+    expect(root.querySelector('.toast')).toBeNull();
+  });
+});

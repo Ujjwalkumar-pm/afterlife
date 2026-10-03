@@ -16,7 +16,7 @@ export interface TutorialPlan {
 
 export const TUTORIAL_STEPS: { text: string; target: CoachTarget }[] = [
   { text: 'Tap Moss in your tray.', target: 'seed-moss' },
-  { text: 'Tap a soil tile to plant it.', target: 'tile' },
+  { text: 'Tap a glowing tile to plant.', target: 'tile' },
   { text: 'Plant one more next to it.', target: 'tile' },
   { text: 'Now pick a Tyre.', target: 'scrap' },
   { text: 'Drop it beside your seeds — everything inside the ring grows.', target: 'tile' },

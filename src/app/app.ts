@@ -1,10 +1,12 @@
 import type { LevelData, Pos } from '../engine';
 import { PlayController } from '../game/controller';
 import type { AttachOptions } from '../render/scene/DioramaScene';
-import { loadSave, markCompleted, writeSave, type SaveData, type Store } from '../save/save';
+import { loadSave, markCompleted, recordStars, writeSave, type SaveData, type Store } from '../save/save';
 import { Hud } from '../ui/hud';
 import { cuesFor } from '../audio/cues';
 import { planTutorial, Tutorial } from '../game/tutorial';
+import { bestTile } from '../game/hints';
+import { milestonesCrossed, starsFor } from '../game/scoring';
 import { ICONS } from '../ui/icons';
 import { silentSound, type Sound } from '../audio/sound';
 import { levelStatuses, type LevelStatus } from './progress';
@@ -37,6 +39,9 @@ export class App {
   private tutorial: Tutorial | null = null;
   private tutorialTimer: ReturnType<typeof setTimeout> | null = null;
   private howto: HTMLElement | null = null;
+  private hintTimer: ReturnType<typeof setTimeout> | null = null;
+  private hintShown = false;
+  private lastStars: 1 | 2 | 3 | null = null;
   private readonly onHowtoKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') this.closeHowTo();
   };
@@ -91,9 +96,10 @@ export class App {
     this.screen = 'play';
     this.levelIndex = index;
     this.root.innerHTML = '';
-    const ctrl = new PlayController(level);
+    const ctrl = new PlayController(level, { assist: true });
     this.controller = ctrl;
     this.tutorial = index === 0 && (opts.tutorial || !this.save.tutorialDone) ? new Tutorial(planTutorial(level)) : null;
+    this.tutorial?.update(ctrl.view, []);
     const hud = new Hud(this.root, {
       select: (sel) => ctrl.select(sel),
       undo: () => ctrl.undo(),
@@ -107,14 +113,19 @@ export class App {
       skipTutorial: () => this.finishTutorial(),
     });
     this.hud = hud;
-    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null });
+    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null });
     let lastOverlay = ctrl.view.overlay;
+    let lastProgress = ctrl.view.progress;
     this.unsubscribe = ctrl.onChange((view, events) => {
       if (events.some((e) => e.type === 'won')) {
         this.save = markCompleted(this.save, level.id);
+        this.lastStars = starsFor(level, view.state);
+        this.save = recordStars(this.save, level.id, this.lastStars);
         writeSave(this.store, this.save);
       }
       const cues = cuesFor(events);
+      if (milestonesCrossed(lastProgress, view.progress).length > 0) cues.push('milestone');
+      lastProgress = view.progress;
       if (view.overlay !== lastOverlay && view.overlay === 'restored') cues.push('won');
       if (view.overlay !== lastOverlay && view.overlay === 'rests') cues.push('rests');
       lastOverlay = view.overlay;
@@ -133,9 +144,11 @@ export class App {
         }
       }
       hud.render(view, meta());
+      this.scheduleHint();
     });
     this.renderHud = () => hud.render(ctrl.view, meta());
     hud.render(ctrl.view, meta());
+    this.scheduleHint();
     this.stage.show(ctrl, {
       reducedMotion: this.reducedMotion,
       interactive: true,
@@ -165,6 +178,10 @@ export class App {
     this.tutorialTimer = null;
     this.tutorial = null;
     if (this.howto) this.closeHowTo(false);
+    if (this.hintTimer) clearTimeout(this.hintTimer);
+    this.hintTimer = null;
+    this.hintShown = false;
+    this.lastStars = null;
     this.stage.highlight?.(null);
     this.controller = null;
   }
@@ -201,6 +218,24 @@ export class App {
     if (nav) return this.show(nav.dataset.nav as Exclude<Screen, 'play'>);
     const card = el.closest<HTMLButtonElement>('[data-level]');
     if (card && !card.disabled) this.startLevel(Number(card.dataset.level));
+  }
+
+  private scheduleHint(): void {
+    if (this.hintTimer) clearTimeout(this.hintTimer);
+    if (this.hintShown) {
+      this.hintShown = false;
+      this.stage.highlight?.(this.tutorial?.highlight ?? null);
+    }
+    const ctrl = this.controller;
+    if (!ctrl) return;
+    this.hintTimer = setTimeout(() => {
+      this.hintTimer = null;
+      if (this.controller !== ctrl || this.tutorial?.highlight || ctrl.view.overlay !== 'none') return;
+      const tile = bestTile(ctrl.view.state, ctrl.view.selection);
+      if (!tile) return;
+      this.hintShown = true;
+      this.stage.highlight?.(tile);
+    }, 3000);
   }
 
   private applyMotionClass(): void {
@@ -247,11 +282,11 @@ export class App {
 
   private howtoHtml(inLevel: boolean): string {
     const cards: [string, string, string][] = [
-      [ICONS.moss!, 'Plant', 'Pick a seed in the tray, then tap a tile.'],
+      [ICONS.moss!, 'Plant', 'Tap a tile to plant. Your seed is already picked.'],
       [ICONS.tyre!, 'Feed', 'Scrap makes every plant inside its ring grow one step. Small scrap reaches 1 tile, medium 2, large 3.'],
       [ICONS.flower!, 'Grow', 'Grown moss and vines spread to new tiles. Flowers bloom — tap a bloom for a free seed. Bamboo grows tall.'],
       [ICONS.crate!, 'Restore', 'Cover the scene — the scrap too — to fill the meter.'],
-      [ICONS.bamboo!, 'Relax', 'No timer, no losing. Undo any time; rotate (◀ ▶ or Q/E) and zoom to look around.'],
+      [ICONS.bamboo!, 'Relax', 'No timer, no losing. Undo any time; rotate (◀ ▶ or Q/E) and zoom to look around. Stuck? Wait a moment — the best tile glows.'],
     ];
     const list = cards.map(([icon, title, text]) => `<li class="howto-card">${icon}<h3>${title}</h3><p>${text}</p></li>`).join('');
     const back = inLevel ? '<button data-close-howto class="primary">Back to the level</button>' : '<button data-nav="title" class="primary">Back</button>';
@@ -293,7 +328,7 @@ export class App {
         const cards = this.levels
           .map((l, i) => {
             const st = statuses[i]!;
-            return `<li><button class="level-card ${st}" data-level="${i}" ${st === 'locked' ? 'disabled' : ''} aria-label="${esc(l.name)}, ${STATUS_TEXT[st]}"><span class="num">${i + 1}</span><span class="name">${esc(l.name)}</span><span class="status">${STATUS_TEXT[st]}</span></button></li>`;
+            return `<li><button class="level-card ${st}" data-level="${i}" ${st === 'locked' ? 'disabled' : ''} aria-label="${esc(l.name)}, ${STATUS_TEXT[st]}"><span class="num">${i + 1}</span><span class="name">${esc(l.name)}</span><span class="status">${STATUS_TEXT[st]}</span>${this.save.stars[l.id] ? `<span class="stars-mini" aria-label="${this.save.stars[l.id]} stars">${'★'.repeat(this.save.stars[l.id]!)}${'☆'.repeat(3 - this.save.stars[l.id]!)}</span>` : ''}</button></li>`;
           })
           .join('');
         return `<main class="screen select-screen"><h2>Choose a place</h2><ol class="level-grid">${cards}</ol>${back}</main>`;

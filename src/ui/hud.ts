@@ -22,6 +22,7 @@ export interface HudMeta {
   hasNext: boolean;
   muted: boolean;
   tutorial?: CoachStep | null;
+  stars?: 1 | 2 | 3 | null;
 }
 
 const LABEL: Record<PlantType, string> = { moss: 'Moss', vine: 'Vine', flower: 'Flower', bamboo: 'Bamboo' };
@@ -38,6 +39,8 @@ export class Hud {
   private glowUntil = 0;
   private prevSeeds: Record<string, number> | null = null;
   private bumpUntil: Record<string, number> = {};
+  private prevBonus: number | null = null;
+  private toastUntil = 0;
 
   constructor(
     root: HTMLElement,
@@ -57,6 +60,8 @@ export class Hud {
     this.prevProgress = view.progress;
     if (this.prevSeeds) for (const [k, n] of Object.entries(view.state.seeds)) if (n > (this.prevSeeds[k] ?? 0)) this.bumpUntil[k] = t + 500;
     this.prevSeeds = { ...view.state.seeds };
+    if (this.prevBonus !== null && view.state.bonusUsed > this.prevBonus) this.toastUntil = t + 1500;
+    this.prevBonus = view.state.bonusUsed;
     const html = this.html(view, meta);
     // Unchanged markup (e.g. a camera rotation) keeps the same nodes, so a press in progress
     // still completes as a click and keyboard focus is not lost.
@@ -137,7 +142,7 @@ export class Hud {
 <header class="hud-top">
   <button data-action="menu" aria-label="Back to places">☰</button>
   <div class="level-name">${esc(m.name)}</div>
-  <div class="meter ${this.glowUntil > now ? 'glow' : ''} ${coach?.target === 'meter' ? 'coach-target' : ''}" role="progressbar" aria-label="Greenery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="meter-fill" style="width:${pct}%"></div></div>
+  <div class="meter ${this.glowUntil > now ? 'glow' : ''} ${coach?.target === 'meter' ? 'coach-target' : ''}" role="progressbar" aria-label="Greenery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><div class="meter-fill" style="width:${pct}%"></div><i class="tick" style="left:25%"></i><i class="tick" style="left:50%"></i><i class="tick" style="left:75%"></i></div>
   <div class="batches" aria-label="${s.batches.length} batches left">${s.batches.map(() => '<i></i>').join('')}</div>
 </header>
 ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coach.step} of ${coach.total}</span><p>${esc(coach.text)}</p><button data-action="skip-tutorial">Skip tutorial</button></div>` : `<p class="hint">${esc(m.hint)}</p>`}
@@ -150,6 +155,7 @@ ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coac
   <button data-action="mute" aria-label="Sound" aria-pressed="${m.muted}">${m.muted ? '🔇' : '🔊'}</button>
 </div>
 <footer class="tray">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
+${this.toastUntil > now ? '<div class="toast" role="status">Bonus crate!</div>' : ''}
 ${this.overlay(v, m)}`;
   }
 
@@ -159,7 +165,7 @@ ${this.overlay(v, m)}`;
     }
     if (v.overlay === 'restored') {
       const primary = m.hasNext ? '<button data-action="next" class="primary">Next place</button>' : '<button data-action="menu" class="primary">Back to places</button>';
-      return `<div class="overlay" role="dialog" aria-label="Scene restored"><h2>Scene restored</h2><p>Nature has taken ${esc(m.name)} back.</p><div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Scene restored"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p><div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div>`;
     }
     if (v.overlay === 'rests') {
       return `<div class="overlay" role="dialog" aria-label="The garden rests"><h2>The garden rests…</h2><p>There is no more scrap to place.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div>`;

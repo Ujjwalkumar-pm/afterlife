@@ -197,9 +197,7 @@ describe('App teaching', () => {
     const highlight = vi.fn();
     const app = new App(root, { show: vi.fn(), highlight }, memoryStore(), LEVELS, opts);
     app.startLevel(0);
-    expect(coach()!.textContent).toContain('Tap Moss in your tray.');
-    click('[data-action="seed"][data-plant="moss"]');
-    expect(coach()!.textContent).toContain('Tap a soil tile to plant it.');
+    expect(coach()!.textContent).toContain('Tap a glowing tile to plant.');
     expect(highlight).toHaveBeenLastCalledWith(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
   });
 
@@ -220,7 +218,7 @@ describe('App teaching', () => {
     click('[data-action="seed"][data-plant="moss"]');
     click('[data-action="menu"]');
     app.startLevel(0);
-    expect(coach()!.textContent).toContain('Step 1 of 6');
+    expect(coach()!.textContent).toContain('Step 2 of 6');
   });
 
   it('does not guide other levels', () => {
@@ -290,5 +288,49 @@ describe('How to Play overlay is a proper dialog', () => {
     expect(setInput).toHaveBeenLastCalledWith(true);
     expect((root.querySelector('.hud') as HTMLElement).inert).toBe(false);
     expect(document.activeElement).toBe(root.querySelector('[data-action="help"]'));
+  });
+});
+
+describe('App v1.2', () => {
+  const done = JSON.stringify({ version: 1, completed: [], tutorialDone: true, settings: {} });
+
+  it('starts levels with Moss selected', () => {
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
+    app.startLevel(0);
+    expect(app.controller!.view.selection).toEqual({ kind: 'seed', plant: 'moss' });
+  });
+
+  it('hint is cleared on any change and recomputed after 3 s idle', () => {
+    vi.useFakeTimers();
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
+    app.startLevel(1);
+    highlight.mockClear();
+    vi.advanceTimersByTime(3000);
+    const tile = highlight.mock.calls.at(-1)![0];
+    expect(tile).toEqual(expect.objectContaining({ x: expect.any(Number), y: expect.any(Number) }));
+    app.controller!.play({ type: 'seed', plant: 'moss', ...tile });
+    expect(highlight).toHaveBeenLastCalledWith(null);
+    vi.useRealTimers();
+  });
+
+  it('saves stars on the win and shows them on the level card', () => {
+    const store = memoryStore({ [SAVE_KEY]: done });
+    const app = new App(root, stage, store, LEVELS, opts);
+    app.startLevel(0);
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    const stars = JSON.parse(store.data[SAVE_KEY]!).stars['bus-stop'];
+    expect([1, 2, 3]).toContain(stars);
+    expect(root.querySelectorAll('.overlay .star.on')).toHaveLength(stars);
+    click('[data-action="menu"]');
+    expect(root.querySelector('[data-level="0"] .stars-mini')!.textContent).toBe('★'.repeat(stars) + '☆'.repeat(3 - stars));
+  });
+
+  it('plays the milestone cue when progress crosses a mark', () => {
+    const { sound, calls } = fakeSound();
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts, sound);
+    app.startLevel(0);
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    expect(calls.cues).toContain('milestone');
   });
 });

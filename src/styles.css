@@ -87,3 +87,11 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 .howto-card p { margin: 0; color: var(--muted); }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 @media (max-width: 600px) { .coach { left: 12px; transform: none; width: calc(100% - 80px); } }
+.meter { position: relative; overflow: visible; }
+.meter .tick { position: absolute; top: -3px; width: 2px; height: 18px; background: rgba(241, 237, 226, 0.45); border-radius: 1px; }
+.stars { display: flex; gap: 8px; font-size: 40px; }
+.star { color: rgba(241, 237, 226, 0.25); animation: star-pop 420ms ease-out both; }
+.star.on { color: #f2c14e; text-shadow: 0 0 14px rgba(242, 193, 78, 0.7); }
+@keyframes star-pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.stars-mini { color: #f2c14e; letter-spacing: 2px; font-size: 15px; }
+.toast { position: absolute; left: 50%; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 70px); transform: translateX(-50%); background: #f2c14e; color: #23251f; font-weight: 700; padding: 8px 16px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); animation: fade-in 200ms ease-out; }
