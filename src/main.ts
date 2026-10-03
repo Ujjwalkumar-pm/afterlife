@@ -8,14 +8,21 @@ import { DioramaScene } from './render/scene/DioramaScene';
 import { safeStorage } from './save/save';
 import { ToneSound } from './audio/toneSound';
 import { startInsights } from './insights';
+import { renderScale } from './render/scene/screen';
 
 const scene = new DioramaScene();
+// Draw at the screen's real pixel density (capped at 2) and display at CSS size, so the board stays sharp.
+const dpr = renderScale(window.devicePixelRatio);
 const game = new Phaser.Game({
   type: Phaser.WEBGL,
   parent: 'stage',
   transparent: true,
-  scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+  scale: { mode: Phaser.Scale.NONE, width: Math.round(window.innerWidth * dpr), height: Math.round(window.innerHeight * dpr), zoom: 1 / dpr },
   scene: [scene],
+});
+window.addEventListener('resize', () => {
+  game.scale.resize(Math.round(window.innerWidth * dpr), Math.round(window.innerHeight * dpr));
+  game.scale.setZoom(1 / dpr);
 });
 
 startInsights();

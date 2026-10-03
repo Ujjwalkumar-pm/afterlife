@@ -237,3 +237,43 @@ button:disabled { opacity: 0.35; filter: grayscale(1); }
 .pip.mood-wave[data-say='1'] .pip-arm-r { animation-name: pip-wave-b; }
 @keyframes pip-hop-b { 40% { transform: translateY(-10px); } }
 @keyframes pip-wave-b { 50% { transform: rotate(-60deg); } }
+
+/* v1.4: hint bulb, scrap reach badges, Next preview, alignment */
+.hud-tools [data-action='hint'] { position: relative; color: #f2c14e; }
+.hud-tools [data-action='hint']:disabled { color: var(--ink); }
+.hint-count { position: absolute; top: 3px; right: 3px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: #f2c14e; color: #23251f; font-size: 11px; font-weight: 800; line-height: 16px; text-align: center; }
+.hud-tools [data-action='hint']:disabled .hint-count { background: rgba(241, 237, 226, 0.25); color: var(--ink); }
+.hud-tools [data-action='hint'].nudge { animation: hint-nudge 1.4s ease-in-out infinite; }
+@keyframes hint-nudge { 50% { box-shadow: 0 0 0 6px rgba(242, 193, 78, 0.28); background: rgba(242, 193, 78, 0.16); } }
+.overlay .hints-used { font-size: 14px; color: #f2c14e; }
+
+/* tray: one baseline for icon, name, count and badge */
+.tray button { display: inline-flex; align-items: center; gap: 6px; line-height: 1; }
+.tray button .icon { width: 22px; height: 22px; }
+.tray .count, .tray .reach { display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 7px; border-radius: 999px; background: rgba(241, 237, 226, 0.12); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.tray button.selected .count, .tray button.selected .reach { background: rgba(29, 36, 22, 0.18); }
+.tray .reach { opacity: 1; }
+.tray .reach .icon { width: 16px; height: 16px; }
+.tray .group-label { align-self: center; line-height: 1; }
+.tray .next { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 4px; margin-left: 2px; border-radius: 999px; border: 1px dashed rgba(241, 237, 226, 0.28); opacity: 0.85; }
+.tray .next .group-label { padding-left: 6px; }
+.tray .next .icon { width: 22px; height: 22px; }
+@media (max-width: 600px), (max-height: 500px) { .tray .next { display: none; } }
+
+/* text: centred, balanced line breaks */
+.hint, .coach p, .toast, .overlay .panel, .overlay .panel p, .pip-line, .story-caption { text-wrap: balance; }
+.hint, .toast, .overlay .panel { text-align: center; }
+.hud-top { align-items: center; }
+.hud-top .level-name { line-height: 1.2; }
+/* v1.4 review: Next sits above the tray (never scrolled out of view); tray tightens on tablets */
+.next-chip { position: absolute; right: 16px; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px); display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--glass); border: 1px dashed rgba(241, 237, 226, 0.3); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); opacity: 0.9; pointer-events: none; }
+.next-chip .group-label { padding: 0 4px 0 8px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.next-chip .icon { width: 22px; height: 22px; }
+@media (max-width: 600px), (max-height: 500px) { .next-chip { display: none; } }
+@media (max-width: 1100px) {
+  .tray button { padding: 0 10px 0 8px; }
+  .tray .group-label { font-size: 0; width: 1px; height: 28px; padding: 0; margin: 0 2px; background: var(--glass-border); }
+  .tray .group-label:first-child { display: none; }
+}
+.hud:has(.toast) .next-chip { display: none; }
+@media (max-width: 900px) { .tray [data-action='scrap'] .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }

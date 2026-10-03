@@ -6,7 +6,7 @@ import { ICONS } from '../../src/ui/icons';
 import { makeLevel } from '../engine/helpers';
 
 const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
-  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(), help: vi.fn(), skipTutorial: vi.fn(),
+  select: vi.fn(), undo: vi.fn(), restart: vi.fn(), rotate: vi.fn(), menu: vi.fn(), next: vi.fn(), keepDecorating: vi.fn(), toggleMute: vi.fn(), help: vi.fn(), skipTutorial: vi.fn(), hint: vi.fn(),
 });
 const meta = { name: 'Bus <Stop>', hint: 'Place scrap near a seed.', hasNext: true, muted: false };
 const click = (el: Element | null) => (el as HTMLElement).click();
@@ -435,5 +435,79 @@ describe('Hud v1.3.1 polish', () => {
     const b = root.querySelector('[data-action="mute"]')!;
     expect(b.getAttribute('aria-label')).toBe('Mute');
     expect(b.getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+describe('Hud hint button', () => {
+  const v = () => new PlayController(makeLevel({})).view;
+  const btn = () => root.querySelector<HTMLButtonElement>('[data-action="hint"]')!;
+  it('shows the hints left and calls the handler', () => {
+    const h = handlers();
+    const hud = new Hud(root, h);
+    hud.render(v(), { ...meta, hintsLeft: 2, hintAvailable: true });
+    expect(btn().getAttribute('aria-label')).toBe('Hint, 2 left');
+    expect(btn().querySelector('.hint-count')!.textContent).toBe('2');
+    expect(btn().querySelector('svg')).not.toBeNull();
+    btn().click();
+    expect(h.hint).toHaveBeenCalledTimes(1);
+  });
+  it('is disabled with none left or when not available, and pulses on a nudge', () => {
+    const hud = new Hud(root, handlers());
+    hud.render(v(), { ...meta, hintsLeft: 0, hintAvailable: true });
+    expect(btn().disabled).toBe(true);
+    expect(btn().getAttribute('aria-label')).toBe('No hints left');
+    hud.render(v(), { ...meta, hintsLeft: 3, hintAvailable: false });
+    expect(btn().disabled).toBe(true);
+    hud.render(v(), { ...meta, hintsLeft: 3, hintAvailable: true, nudge: true });
+    expect(btn().classList.contains('nudge')).toBe(true);
+  });
+});
+
+describe('Hud scrap clarity', () => {
+  it('each scrap chip carries a reach badge with a ring icon and spoken text', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre', 'crate', 'car']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    const badges = [...root.querySelectorAll('[data-action="scrap"] .reach')];
+    expect(badges.map((b) => b.querySelector('.n')!.textContent)).toEqual(['1', '2', '3']);
+    expect(badges[1]!.querySelector('svg')).not.toBeNull();
+    expect(badges[1]!.getAttribute('aria-label')).toBe('reaches 2 tiles');
+    expect(badges[0]!.getAttribute('aria-label')).toBe('reaches 1 tile');
+    expect(badges[1]!.getAttribute('title')).toBe('Reaches 2 tiles');
+  });
+  it('shows the next batch as a faded Next group, and nothing when no batch is left', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre'], ['crate', 'can']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    const next = root.querySelector('.next-chip')!;
+    expect(root.querySelector('.tray .next-chip')).toBeNull();
+    expect(next.getAttribute('aria-label')).toBe('Next: crate, can');
+    expect(next.querySelectorAll('svg')).toHaveLength(2);
+    const last = new PlayController(makeLevel({ batches: [['tyre']] }));
+    hud.render(last.view, meta);
+    expect(root.querySelector('.next-chip')).toBeNull();
+  });
+});
+
+describe('Hud keeps keyboard focus across redraws', () => {
+  it('the focused tool stays focused when the markup changes', () => {
+    const hud = new Hud(root, handlers());
+    const v = new PlayController(makeLevel({})).view;
+    hud.render(v, { ...meta, hintsLeft: 3, hintAvailable: true });
+    root.querySelector<HTMLElement>('[data-action="restart"]')!.focus();
+    hud.render(v, { ...meta, hintsLeft: 3, hintAvailable: true, nudge: true });
+    expect(document.activeElement).toBe(root.querySelector('[data-action="restart"]'));
+    root.querySelector<HTMLElement>('[data-action="hint"]')!.focus();
+    hud.render(v, { ...meta, hintsLeft: 2, hintAvailable: true });
+    expect(document.activeElement).toBe(root.querySelector('[data-action="hint"]'));
+  });
+  it('a focused scrap chip keeps focus by its slot', () => {
+    const c = new PlayController(makeLevel({ batches: [['tyre', 'crate']] }));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    root.querySelector<HTMLElement>('[data-action="scrap"][data-slot="1"]')!.focus();
+    c.select({ kind: 'scrap', slot: 1 });
+    hud.render(c.view, meta);
+    expect(document.activeElement).toBe(root.querySelector('[data-action="scrap"][data-slot="1"]'));
   });
 });

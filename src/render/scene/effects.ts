@@ -133,7 +133,7 @@ export class Effects {
 
     floatText(x: number, y: number, text: string, big: boolean, still: boolean): void {
       const t = this.scene.add
-        .text(x, y - 30, text, { fontFamily: 'Nunito, sans-serif', fontSize: big ? '28px' : '20px', fontStyle: 'bold', color: '#fff6d8', stroke: '#2b3a1f', strokeThickness: 5 })
+        .text(x, y - 30, text, { fontFamily: 'Nunito, sans-serif', fontSize: big ? '28px' : '20px', fontStyle: 'bold', color: '#fff6d8', stroke: '#2b3a1f', strokeThickness: 5, resolution: 3 })
         .setOrigin(0.5);
       this.layer.add(t);
       if (still) {

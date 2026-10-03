@@ -18,10 +18,14 @@ export const ICONS: Record<string, string> = {
   menu: line('<path d="M7 10h18M7 16h18M7 22h18"/>'),
   undo: line('<path d="M11 8 6 13l5 5"/><path d="M6 13h12a6.5 6.5 0 0 1 0 13h-5"/>'),
   restart: line('<path d="M25 16a9 9 0 1 1-2.6-6.4"/><path d="M23.5 4.5v5.5H18"/>'),
-  'rotate-left': line('<path d="M19 8l-8 8 8 8"/>'),
-  'rotate-right': line('<path d="M13 8l8 8-8 8"/>'),
+  // A board tile with an arc arrow under it: "turn the board", not back/next.
+  'rotate-left': line('<path d="M16 9l8 4.5-8 4.5-8-4.5z"/><path d="M27 20.5a11 6 0 0 1-22 0"/><path d="M5 16.5v4h4"/>'),
+  'rotate-right': line('<path d="M16 9l8 4.5-8 4.5-8-4.5z"/><path d="M5 20.5a11 6 0 0 0 22 0"/><path d="M27 16.5v4h-4"/>'),
   'sound-on': line('<path d="M5 12.5h5l7-6v19l-7-6H5z"/><path d="M21 12.5a5 5 0 0 1 0 7"/><path d="M24.5 9a10 10 0 0 1 0 14"/>'),
   'sound-off': line('<path d="M5 12.5h5l7-6v19l-7-6H5z"/><path d="M21 12.5l6.5 7M27.5 12.5l-6.5 7"/>'),
+  // The growth ring as drawn on the board: a dashed diamond around a centre dot.
+  ring: line('<path d="M16 9l13 8-13 8-13-8z" stroke-dasharray="3.2 2.6"/><circle cx="16" cy="17" r="2.4" fill="currentColor" stroke="none"/>'),
+  bulb: line('<path d="M12.5 23h7M13.5 27h5"/><path d="M16 4a8 8 0 0 0-4.8 14.4c.9.8 1.3 1.8 1.3 3.1h7c0-1.3.4-2.3 1.3-3.1A8 8 0 0 0 16 4z"/>'),
   lock: line('<rect x="8" y="14" width="16" height="12" rx="3"/><path d="M11 14v-3a5 5 0 0 1 10 0v3"/>'),
   leaf: line('<path d="M7 25C7 13 15 7 26 7c0 11-6 18-17 18z"/><path d="M7 25 18 14"/>'),
 };

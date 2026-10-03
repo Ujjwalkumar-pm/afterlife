@@ -1,4 +1,5 @@
 import { PLANT_TYPES, RADIUS, SCRAP, type PlantType } from '../engine';
+import { MAX_HINTS } from '../game/scoring';
 import type { Selection, View } from '../game/controller';
 import type { CoachStep } from '../game/tutorial';
 import type { PipMood, PipSay } from '../game/pip';
@@ -16,6 +17,7 @@ export interface HudHandlers {
   toggleMute(): void;
   help(): void;
   skipTutorial(): void;
+  hint(): void;
 }
 
 export interface HudMeta {
@@ -25,6 +27,14 @@ export interface HudMeta {
   muted: boolean;
   tutorial?: CoachStep | null;
   stars?: 1 | 2 | 3 | null;
+  /** Hints left in this place (undefined hides the Hint button). */
+  hintsLeft?: number;
+  /** False during the tutorial or while a panel is open. */
+  hintAvailable?: boolean;
+  /** Idle nudge: the bulb pulses. */
+  nudge?: boolean;
+  /** Hints used, shown on the win panel. */
+  hintsUsed?: number;
 }
 
 const LABEL: Record<PlantType, string> = { moss: 'Moss', vine: 'Vine', flower: 'Flower', bamboo: 'Bamboo' };
@@ -80,7 +90,11 @@ export class Hud {
     // still completes as a click and keyboard focus is not lost.
     if (html === this.lastHtml) return;
     this.lastHtml = html;
+    // Rebuilding replaces the buttons; put keyboard focus back on the same control.
+    const active = document.activeElement as HTMLElement | null;
+    const focusKey = active && this.el.contains(active) && active.dataset.action ? `[data-action="${active.dataset.action}"]${active.dataset.slot ? `[data-slot="${active.dataset.slot}"]` : ''}${active.dataset.plant ? `[data-plant="${active.dataset.plant}"]` : ''}` : null;
     this.el.innerHTML = html;
+    if (focusKey) this.el.querySelector<HTMLElement>(focusKey)?.focus();
     const overlay = this.error ? 'error' : view.overlay;
     if (overlay !== this.lastOverlay) {
       this.lastOverlay = overlay;
@@ -176,6 +190,8 @@ export class Hud {
         return h.help();
       case 'skip-tutorial':
         return h.skipTutorial();
+      case 'hint':
+        return h.hint();
     }
   }
 
@@ -197,9 +213,11 @@ export class Hud {
         const on = sel?.kind === 'scrap' && sel.slot === i;
         const reach = RADIUS[SCRAP[k].size];
         const cls = `${on ? 'selected' : ''} ${coach?.target === 'scrap' && i === 0 ? 'coach-target' : ''}`.trim();
-        return `<button data-action="scrap" data-slot="${i}" class="${cls}" aria-pressed="${on}">${ICONS[k] ?? ''}<span class="label">${cap(k)}</span> <span class="reach" aria-label="reaches ${reach}">◇${reach}</span></button>`;
+        return `<button data-action="scrap" data-slot="${i}" class="${cls}" aria-pressed="${on}">${ICONS[k] ?? ''}<span class="label">${cap(k)}</span> <span class="reach" title="Reaches ${reach} tile${reach === 1 ? '' : 's'}" aria-label="reaches ${reach} tile${reach === 1 ? '' : 's'}">${ICONS.ring}<span class="n">${reach}</span></span></button>`;
       })
       .join('');
+    const upcoming = s.batches[0] ?? [];
+    const next = upcoming.length ? `<div class="next-chip" role="note" aria-label="Next: ${upcoming.join(', ')}"><span class="group-label">Next</span>${upcoming.map((k) => ICONS[k] ?? '').join('')}</div>` : '';
     return `
 <header class="hud-top">
   <button data-action="menu" aria-label="Back to places">${ICONS.menu}</button>
@@ -211,16 +229,18 @@ export class Hud {
 ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coach.step} of ${coach.total}</span><p>${esc(coach.text)}</p><button data-action="skip-tutorial">Skip tutorial</button></div>` : `<p class="hint">${esc(m.hint)}</p>`}
 <div class="hud-tools" role="group" aria-label="Tools">
   <button data-action="help" aria-label="How to play">${ICONS.help}</button>
+  ${m.hintsLeft === undefined ? '' : `<button data-action="hint" class="${m.nudge && m.hintsLeft > 0 && m.hintAvailable ? 'nudge' : ''}" aria-label="${m.hintsLeft > 0 ? `Hint, ${m.hintsLeft} left` : 'No hints left'}" ${m.hintsLeft > 0 && m.hintAvailable ? '' : 'disabled'}>${ICONS.bulb}<span class="hint-count" aria-hidden="true">${m.hintsLeft}</span></button>`}
   <span class="sep"></span>
   <button data-action="undo" aria-label="Undo" ${v.canUndo ? '' : 'disabled'}>${ICONS.undo}</button>
   <button data-action="restart" aria-label="Restart level">${ICONS.restart}</button>
   <span class="sep"></span>
-  <button data-action="rotate-left" aria-label="Rotate left">${ICONS['rotate-left']}</button>
-  <button data-action="rotate-right" aria-label="Rotate right">${ICONS['rotate-right']}</button>
+  <button data-action="rotate-left" aria-label="Turn left">${ICONS['rotate-left']}</button>
+  <button data-action="rotate-right" aria-label="Turn right">${ICONS['rotate-right']}</button>
   <span class="sep"></span>
   <button data-action="mute" aria-label="Mute" aria-pressed="${m.muted}">${m.muted ? ICONS['sound-off'] : ICONS['sound-on']}</button>
 </div>
 <footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
+${next}
 ${this.toastUntil > now ? '<div class="toast" role="status">Bonus pack: +2 moss, +1 tyre</div>' : ''}
 ${this.overlay(v, m)}`;
   }
@@ -231,7 +251,7 @@ ${this.overlay(v, m)}`;
     }
     if (v.overlay === 'restored') {
       const primary = m.hasNext ? '<button data-action="next" class="primary">Next place</button>' : '<button data-action="menu" class="primary">Back to places</button>';
-      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p><div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="Scene restored"><div class="panel"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p>${m.hintsUsed ? `<p class="hints-used">Hints used: ${m.hintsUsed} of ${MAX_HINTS}</p>` : ''}<div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div></div>`;
     }
     if (v.overlay === 'rests') {
       return `<div class="overlay" role="dialog" aria-label="The garden rests"><div class="panel"><h2>The garden rests…</h2><p>Nothing more can grow here. Undo a few moves, or restart.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div></div>`;

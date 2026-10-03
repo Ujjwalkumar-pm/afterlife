@@ -9,11 +9,16 @@ export function comboFor(events: GameEvent[]): { size: number; label: ComboLabel
   return { size, label: size >= 11 ? 'Wild!' : size >= 7 ? 'Lush!' : 'Nice!' };
 }
 
-export function starsFor(level: LevelData, s: GameState): 1 | 2 | 3 {
+export const MAX_HINTS = 3;
+
+/** Stars for a win. Hints cap the result: 1 hint → at most 2★, 2 or more → 1★. */
+export function starsFor(level: LevelData, s: GameState, hintsUsed = 0): 1 | 2 | 3 {
+  const cap = hintsUsed >= 2 ? 1 : hintsUsed === 1 ? 2 : 3;
   if (s.bonusUsed > 0) return 1;
   const total = level.batches.reduce((n, b) => n + b.length, 0);
   const left = s.tray.length + s.batches.reduce((n, b) => n + b.length, 0);
-  return total > 0 && left / total >= 0.25 ? 3 : 2;
+  const base = total > 0 && left / total >= 0.25 ? 3 : 2;
+  return Math.min(base, cap) as 1 | 2 | 3;
 }
 
 export function milestonesCrossed(prev: number, next: number): (25 | 50 | 75)[] {
