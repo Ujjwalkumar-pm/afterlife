@@ -7,6 +7,7 @@ import { LEVELS } from './levels';
 import { DioramaScene } from './render/scene/DioramaScene';
 import { safeStorage } from './save/save';
 import { ToneSound } from './audio/toneSound';
+import { startInsights } from './insights';
 
 const scene = new DioramaScene();
 const game = new Phaser.Game({
@@ -17,6 +18,7 @@ const game = new Phaser.Game({
   scene: [scene],
 });
 
+startInsights();
 const sound = new ToneSound();
 const app = new App(document.getElementById('ui')!, { show: (ctrl, opts) => scene.attach(ctrl, opts), highlight: (tile) => scene.setHighlight(tile), setInput: (on) => scene.setInput(on) }, safeStorage(), LEVELS, {
   demoIntervalMs: 900,
