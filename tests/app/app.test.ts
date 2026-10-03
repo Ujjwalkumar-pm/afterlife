@@ -494,4 +494,13 @@ describe('App v1.3 story and Pip', () => {
     click('[data-action="next"]');
     expect(app.controller!.level.id).toBe('laundromat');
   });
+  it('the places screen counts restored places and marks locked ones with a lock', () => {
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], storySeen: true, settings: {} });
+    new App(root, stage, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts);
+    click('[data-nav="select"]');
+    expect(root.querySelector('.select-screen .progress-note')!.textContent).toBe(`1 of ${LEVELS.length} restored`);
+    expect(root.querySelector('[data-level="0"] .card-icon svg')).not.toBeNull();
+    expect(root.querySelector('[data-level="2"] .card-icon svg')).not.toBeNull();
+    expect(root.querySelector('[data-level="1"] .card-icon')).toBeNull();
+  });
 });

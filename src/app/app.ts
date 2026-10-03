@@ -378,16 +378,17 @@ export class App {
     const back = '<button data-nav="title">Back</button>';
     switch (screen) {
       case 'title':
-        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu"><button data-nav="select" class="primary">Play</button><button data-nav="howto">How to Play</button><button data-nav="story">Story</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
+        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu glass"><button data-nav="select" class="primary">Play</button><button data-nav="howto">How to Play</button><button data-nav="story">Story</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
       case 'select': {
         const statuses = levelStatuses(this.levels.map((l) => l.id), this.save.completed);
         const cards = this.levels
           .map((l, i) => {
             const st = statuses[i]!;
-            return `<li><button class="level-card ${st}" data-level="${i}" ${st === 'locked' ? 'disabled' : ''} aria-label="${esc(l.name)}, ${STATUS_TEXT[st]}${this.save.stars[l.id] ? `, ${this.save.stars[l.id]} of 3 stars` : ''}"><span class="num">${i + 1}</span><span class="name">${esc(l.name)}</span><span class="status">${STATUS_TEXT[st]}</span>${this.save.stars[l.id] ? `<span class="stars-mini" aria-hidden="true">${'★'.repeat(this.save.stars[l.id]!)}${'☆'.repeat(3 - this.save.stars[l.id]!)}</span>` : ''}</button></li>`;
+            return `<li><button class="level-card ${st}" data-level="${i}" ${st === 'locked' ? 'disabled' : ''} aria-label="${esc(l.name)}, ${STATUS_TEXT[st]}${this.save.stars[l.id] ? `, ${this.save.stars[l.id]} of 3 stars` : ''}"><span class="num">${i + 1}</span><span class="name">${esc(l.name)}</span><span class="status">${STATUS_TEXT[st]}</span>${this.save.stars[l.id] ? `<span class="stars-mini" aria-hidden="true">${'★'.repeat(this.save.stars[l.id]!)}${'☆'.repeat(3 - this.save.stars[l.id]!)}</span>` : ''}${st === 'locked' ? `<span class="card-icon" aria-hidden="true">${ICONS.lock}</span>` : st === 'completed' ? `<span class="card-icon" aria-hidden="true">${ICONS.leaf}</span>` : ''}</button></li>`;
           })
           .join('');
-        return `<main class="screen select-screen"><h2>Choose a place</h2><ol class="level-grid">${cards}</ol>${back}</main>`;
+        const done = statuses.filter((x) => x === 'completed').length;
+        return `<main class="screen select-screen"><h2>Choose a place</h2><p class="progress-note">${done} of ${this.levels.length} restored</p><ol class="level-grid">${cards}</ol>${back}</main>`;
       }
       case 'settings':
         return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label><button data-nav="howto">How to play</button>${back}</main>`;

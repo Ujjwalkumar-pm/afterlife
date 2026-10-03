@@ -145,3 +145,78 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 @keyframes pip-hop { 40% { transform: translateY(-10px); } }
 @keyframes pip-wave { 50% { transform: rotate(-60deg); } }
 @keyframes pip-blink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+
+/* v1.3 look and feel — overrides the earlier rules */
+:root { --glass: rgba(28, 31, 26, 0.62); --glass-strong: rgba(28, 31, 26, 0.78); --glass-border: rgba(241, 237, 226, 0.12); --moss: linear-gradient(180deg, #b0d466, #86b04a); }
+.glass, .hud-top, .hud-tools, .tray, .hint, .overlay .panel, .level-card, .howto-card { background: var(--glass); border: 1px solid var(--glass-border); -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28); }
+button { background: rgba(241, 237, 226, 0.07); border-color: var(--glass-border); transition: background 150ms ease, transform 120ms ease; }
+button:hover:not(:disabled) { background: rgba(241, 237, 226, 0.14); }
+button:active:not(:disabled) { transform: scale(0.96); }
+button.primary, button.selected { background: var(--moss); color: var(--accent-ink); border-color: transparent; box-shadow: 0 4px 16px rgba(156, 194, 90, 0.35); font-weight: 700; }
+button:disabled { opacity: 0.35; filter: grayscale(1); }
+#stage::after { content: ''; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 48%, transparent 55%, rgba(8, 10, 6, 0.5)); }
+
+/* top bar */
+.hud-top { left: 50%; right: auto; transform: translateX(-50%); width: min(820px, calc(100% - 24px)); padding: 6px 12px 6px 6px; border-radius: 999px; gap: 10px; }
+.hud-top [data-action="menu"] { flex: none; padding: 0; display: grid; place-items: center; background: transparent; border-color: transparent; }
+.level-name { font-size: 16px; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+.meter { height: 10px; background: rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35); }
+.meter-fill { background: linear-gradient(90deg, #6f9a3a, #b5d86a); border-radius: 999px; }
+.meter .tick { top: -2px; height: 14px; background: rgba(241, 237, 226, 0.3); }
+.meter-pct { flex: none; min-width: 3.2em; text-align: right; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+.batches { flex: none; display: flex; align-items: center; gap: 4px; padding: 2px 8px 2px 4px; border-radius: 999px; background: rgba(241, 237, 226, 0.08); font-size: 13px; font-weight: 700; }
+.batches .icon { width: 20px; height: 20px; }
+
+/* hint */
+.hint { top: calc(max(12px, env(safe-area-inset-top)) + 64px); font-size: 14px; color: var(--ink); max-width: min(560px, calc(100% - 32px)); text-align: center; border-radius: 18px; }
+
+/* tool dock */
+.hud-tools { top: calc(max(12px, env(safe-area-inset-top)) + 116px); padding: 6px; gap: 2px; border-radius: 22px; align-items: center; }
+.hud-tools button { width: 44px; height: 44px; padding: 0; display: grid; place-items: center; background: transparent; border-color: transparent; color: var(--ink); }
+.hud-tools button:hover:not(:disabled) { background: rgba(241, 237, 226, 0.12); }
+.hud-tools button[aria-pressed='true'] { color: #f2c14e; }
+.hud-tools .sep { display: block; width: 70%; height: 1px; margin: 3px 0; background: var(--glass-border); }
+
+/* tray */
+.tray { left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); width: fit-content; max-width: calc(100% - 24px); margin: 0 auto; padding: 8px; border-radius: 22px; align-items: center; scrollbar-width: none; }
+.tray::-webkit-scrollbar { display: none; }
+.tray button { min-height: 44px; padding: 0 14px 0 10px; }
+.tray .group-label { padding: 0 4px 0 6px; font-size: 11px; }
+.reach { opacity: 0.75; font-size: 13px; }
+.toast { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 96px); }
+.pip { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 140px); }
+
+/* overlays */
+.overlay { background: rgba(18, 20, 16, 0.45); }
+.overlay .panel { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 24px 28px; border-radius: 24px; max-width: min(440px, 100%); background: var(--glass-strong); }
+.overlay .panel p { margin: 0; color: var(--muted); }
+
+/* title and places */
+.logo { text-shadow: 0 0 40px rgba(181, 216, 106, 0.35), 0 4px 18px rgba(0, 0, 0, 0.5); }
+.menu.glass { padding: 16px; border-radius: 24px; min-width: 260px; }
+.select-screen, .settings-screen, .credits-screen, .howto-screen { background: radial-gradient(ellipse at 50% 0%, #34402f, var(--bg) 70%); }
+.select-screen h2 { margin-bottom: 0; }
+.progress-note { margin: -8px 0 4px; color: var(--muted); }
+.level-card { position: relative; border-radius: 18px; }
+.level-card.completed { background: linear-gradient(160deg, rgba(110, 154, 58, 0.55), rgba(40, 52, 30, 0.7)); border-color: rgba(181, 216, 106, 0.35); }
+.level-card.locked { opacity: 0.55; }
+.card-icon { position: absolute; top: 12px; right: 12px; color: var(--muted); }
+.level-card.completed .card-icon { color: #b5d86a; }
+.card-icon .icon { width: 22px; height: 22px; }
+
+/* phones: dock becomes a row under the top bar so the board keeps its width */
+@media (max-width: 600px) {
+  .hud-tools { flex-direction: row; top: calc(max(12px, env(safe-area-inset-top)) + 62px); left: 50%; right: auto; transform: translateX(-50%); padding: 4px 6px; }
+  .hud-tools button { width: 40px; height: 40px; min-width: 40px; min-height: 40px; }
+  .hud-tools .sep { width: 1px; height: 24px; margin: 0 3px; }
+  .hint { top: calc(max(12px, env(safe-area-inset-top)) + 122px); font-size: 13px; padding: 6px 12px; }
+  .coach { top: calc(max(12px, env(safe-area-inset-top)) + 122px); left: 12px; width: calc(100% - 24px); }
+  .tray .group-label { font-size: 0; width: 1px; height: 28px; padding: 0; margin: 0 2px; background: var(--glass-border); }
+  .level-name { font-size: 15px; }
+}
+@media (max-width: 600px) {
+  .tray .group-label:first-child { display: none; }
+  .tray button { padding: 0 12px 0 8px; gap: 6px; }
+  /* scrap chips go icon + reach on phones; the name stays for screen readers */
+  .tray [data-action='scrap'] .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}

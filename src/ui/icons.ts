@@ -1,4 +1,6 @@
 const svg = (body: string) => `<svg class="icon" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true" focusable="false">${body}</svg>`;
+/** Line icons for the HUD tools: one stroke weight, drawn in the button's text colour. */
+const line = (body: string) => svg(`<g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${body}</g>`);
 
 export const ICONS: Record<string, string> = {
   moss: svg('<ellipse cx="11" cy="21" rx="8" ry="5" fill="#5d7a2f"/><ellipse cx="20" cy="19" rx="9" ry="6" fill="#89a94a"/><ellipse cx="17" cy="16" rx="3" ry="1.6" fill="#c5d98f"/>'),
@@ -13,4 +15,13 @@ export const ICONS: Record<string, string> = {
   sign: svg('<rect x="15" y="12" width="2" height="16" fill="#5a6468"/><path d="M16 3 L26 13 H6 Z" fill="#b8a24a"/><path d="M15 8h2v3h-2z" fill="#3a3a34"/>'),
   car: svg('<path d="M4 20 L8 13 H22 L28 20 V24 H4 Z" fill="#9a5b3c"/><path d="M10 14 H20 L23 19 H8 Z" fill="#cfcac0"/><circle cx="10" cy="24" r="3" fill="#2e2c2a"/><circle cx="23" cy="24" r="3" fill="#2e2c2a"/>'),
   help: svg('<circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12.5 12.5a3.6 3.6 0 1 1 5.2 3.2c-1.2.6-1.7 1.3-1.7 2.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="22.8" r="1.6" fill="currentColor"/>'),
+  menu: line('<path d="M7 10h18M7 16h18M7 22h18"/>'),
+  undo: line('<path d="M11 8 6 13l5 5"/><path d="M6 13h12a6.5 6.5 0 0 1 0 13h-5"/>'),
+  restart: line('<path d="M25 16a9 9 0 1 1-2.6-6.4"/><path d="M23.5 4.5v5.5H18"/>'),
+  'rotate-left': line('<path d="M19 8l-8 8 8 8"/>'),
+  'rotate-right': line('<path d="M13 8l8 8-8 8"/>'),
+  'sound-on': line('<path d="M5 12.5h5l7-6v19l-7-6H5z"/><path d="M21 12.5a5 5 0 0 1 0 7"/><path d="M24.5 9a10 10 0 0 1 0 14"/>'),
+  'sound-off': line('<path d="M5 12.5h5l7-6v19l-7-6H5z"/><path d="M21 12.5l6.5 7M27.5 12.5l-6.5 7"/>'),
+  lock: line('<rect x="8" y="14" width="16" height="12" rx="3"/><path d="M11 14v-3a5 5 0 0 1 10 0v3"/>'),
+  leaf: line('<path d="M7 25C7 13 15 7 26 7c0 11-6 18-17 18z"/><path d="M7 25 18 14"/>'),
 };
