@@ -12,13 +12,13 @@ const scene = new DioramaScene();
 const game = new Phaser.Game({
   type: Phaser.WEBGL,
   parent: 'stage',
-  backgroundColor: '#23251f',
+  transparent: true,
   scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
   scene: [scene],
 });
 
 const sound = new ToneSound();
-const app = new App(document.getElementById('ui')!, { show: (ctrl, opts) => scene.attach(ctrl, opts) }, safeStorage(), LEVELS, {
+const app = new App(document.getElementById('ui')!, { show: (ctrl, opts) => scene.attach(ctrl, opts), highlight: (tile) => scene.setHighlight(tile) }, safeStorage(), LEVELS, {
   demoIntervalMs: 900,
   prefersReducedMotion: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
 }, sound);

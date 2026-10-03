@@ -9,6 +9,10 @@
   font-family: 'Nunito', system-ui, sans-serif;
   color: var(--ink);
 }
+@property --sky-top { syntax: '<color>'; inherits: true; initial-value: #2b3036; }
+@property --sky-bottom { syntax: '<color>'; inherits: true; initial-value: #3d3a33; }
+#stage { background: linear-gradient(to bottom, var(--sky-top), var(--sky-bottom)); transition: --sky-top 1.5s ease, --sky-bottom 1.5s ease; }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
 #stage { position: fixed; inset: 0; }

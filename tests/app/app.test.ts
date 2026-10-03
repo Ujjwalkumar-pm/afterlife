@@ -43,7 +43,7 @@ describe('App', () => {
     click('[data-level="0"]');
     expect(app.screen).toBe('play');
     expect(root.querySelector('.hud')).not.toBeNull();
-    expect(stage.show).toHaveBeenLastCalledWith(app.controller, { reducedMotion: false, interactive: true });
+    expect(stage.show).toHaveBeenLastCalledWith(app.controller, expect.objectContaining({ reducedMotion: false, interactive: true }));
   });
 
   it('saves completion, unlocks the next place and offers Next', () => {

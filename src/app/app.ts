@@ -1,4 +1,4 @@
-import type { LevelData } from '../engine';
+import type { LevelData, Pos } from '../engine';
 import { PlayController } from '../game/controller';
 import type { AttachOptions } from '../render/scene/DioramaScene';
 import { loadSave, markCompleted, writeSave, type SaveData, type Store } from '../save/save';
@@ -9,6 +9,7 @@ import { levelStatuses, type LevelStatus } from './progress';
 
 export interface Stage {
   show(ctrl: PlayController | null, opts: AttachOptions): void;
+  highlight?(tile: Pos | null): void;
 }
 export interface AppOptions {
   /** Milliseconds between title-screen demo moves; null disables the demo (tests). */
@@ -109,7 +110,16 @@ export class App {
     });
     this.renderHud = () => hud.render(ctrl.view, meta());
     hud.render(ctrl.view, meta());
-    this.stage.show(ctrl, { reducedMotion: this.reducedMotion, interactive: true });
+    this.stage.show(ctrl, {
+      reducedMotion: this.reducedMotion,
+      interactive: true,
+      trayTarget: (plant) => {
+        const el = this.root.querySelector<HTMLElement>(`[data-action="seed"][data-plant="${plant}"]`) ?? this.root.querySelector<HTMLElement>('.tray');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      },
+    });
   }
 
   showError(): void {
