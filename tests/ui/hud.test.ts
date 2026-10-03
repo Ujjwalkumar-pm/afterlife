@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PlayController } from '../../src/game/controller';
-import { Hud, type HudHandlers } from '../../src/ui/hud';
+import { Hud, PIP_LINE_MS, type HudHandlers } from '../../src/ui/hud';
 import { makeLevel } from '../engine/helpers';
 
 const handlers = (): HudHandlers & Record<string, ReturnType<typeof vi.fn>> => ({
@@ -309,6 +309,63 @@ describe('v1.2.1 polish', () => {
     expect(root.querySelector('.toast')).toBeNull();
     expect(root.querySelector('.tray')!.classList.contains('sparkle')).toBe(false);
     expect(root.querySelector('[data-action="undo"]')).toBe(undo);
+    vi.useRealTimers();
+  });
+});
+
+describe('Hud Pip', () => {
+  const pip = () => root.querySelector('.pip')!;
+  const line = () => root.querySelector<HTMLElement>('.pip-line')!;
+
+  it('shows Pip idle and silent, outside the HUD markup', () => {
+    const hud = new Hud(root, handlers());
+    hud.render(new PlayController(makeLevel({})).view, meta);
+    expect(pip().className).toBe('pip mood-idle');
+    expect(line().hidden).toBe(true);
+    expect(line().getAttribute('aria-live')).toBe('polite');
+    expect(hud.el.contains(pip())).toBe(false);
+  });
+  it('says a line with its mood, then rests after 2.5 s', () => {
+    vi.useFakeTimers();
+    const hud = new Hud(root, handlers());
+    hud.setPip({ mood: 'cheer', line: 'Lush!' });
+    expect(pip().className).toBe('pip mood-cheer');
+    expect(line().hidden).toBe(false);
+    expect(line().textContent).toBe('Lush!');
+    vi.advanceTimersByTime(PIP_LINE_MS);
+    expect(line().hidden).toBe(true);
+    expect(pip().className).toBe('pip mood-idle');
+    vi.useRealTimers();
+  });
+  it('a silent rule sets the resting mood but never cuts a line short', () => {
+    vi.useFakeTimers();
+    const hud = new Hud(root, handlers());
+    hud.setPip({ mood: 'cheer', line: 'Nice!' });
+    hud.setPip({ mood: 'point', line: null });
+    expect(pip().className).toBe('pip mood-cheer');
+    expect(line().hidden).toBe(false);
+    vi.advanceTimersByTime(PIP_LINE_MS);
+    expect(pip().className).toBe('pip mood-point');
+    hud.setPip({ mood: 'idle', line: null });
+    expect(pip().className).toBe('pip mood-idle');
+    vi.useRealTimers();
+  });
+  it('keeps the line through HUD redraws', () => {
+    const c = new PlayController(makeLevel({}));
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    hud.setPip({ mood: 'point', line: 'Try the glowing spot!' });
+    hud.render(c.view, { ...meta, name: 'Changed' });
+    expect(line().textContent).toBe('Try the glowing spot!');
+    expect(line().hidden).toBe(false);
+  });
+  it('destroy removes Pip and its pending timer', () => {
+    vi.useFakeTimers();
+    const hud = new Hud(root, handlers());
+    hud.setPip({ mood: 'wave', line: 'We did it! Look at it bloom.' });
+    hud.destroy();
+    expect(root.querySelector('.pip')).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
     vi.useRealTimers();
   });
 });

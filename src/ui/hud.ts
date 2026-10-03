@@ -1,7 +1,9 @@
 import { PLANT_TYPES, RADIUS, SCRAP, type PlantType } from '../engine';
 import type { Selection, View } from '../game/controller';
 import type { CoachStep } from '../game/tutorial';
+import type { PipMood, PipSay } from '../game/pip';
 import { ICONS } from './icons';
+import { pipSvg } from './pip';
 
 export interface HudHandlers {
   select(sel: Selection): void;
@@ -28,6 +30,7 @@ export interface HudMeta {
 const LABEL: Record<PlantType, string> = { moss: 'Moss', vine: 'Vine', flower: 'Flower', bamboo: 'Bamboo' };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+export const PIP_LINE_MS = 2500;
 
 export class Hud {
   readonly el: HTMLElement;
@@ -42,6 +45,9 @@ export class Hud {
   private prevBonus: number | null = null;
   private toastUntil = 0;
   private expiryTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly pipEl: HTMLElement;
+  private pipRest: PipMood = 'idle';
+  private pipTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     root: HTMLElement,
@@ -52,6 +58,11 @@ export class Hud {
     this.el.className = 'hud';
     root.appendChild(this.el);
     this.el.addEventListener('click', (e) => this.onClick(e));
+    // Pip lives beside the HUD markup, so HUD redraws never restart its animation or wipe its line.
+    this.pipEl = document.createElement('div');
+    this.pipEl.className = 'pip mood-idle';
+    this.pipEl.innerHTML = `${pipSvg()}<p class="pip-line" aria-live="polite" hidden></p>`;
+    root.appendChild(this.pipEl);
   }
 
   render(view: View, meta: HudMeta): void {
@@ -102,8 +113,30 @@ export class Hud {
     if (this.last) this.render(this.last.view, this.last.meta);
   }
 
+  /** A line shows its mood for PIP_LINE_MS, then Pip returns to its resting mood. A silent say only changes the rest. */
+  setPip(say: PipSay): void {
+    if (say.line === null) {
+      this.pipRest = say.mood;
+      if (!this.pipTimer) this.pipEl.className = `pip mood-${say.mood}`;
+      return;
+    }
+    this.pipEl.className = `pip mood-${say.mood}`;
+    const line = this.pipEl.querySelector<HTMLElement>('.pip-line')!;
+    line.textContent = say.line;
+    line.hidden = false;
+    if (this.pipTimer) clearTimeout(this.pipTimer);
+    this.pipTimer = setTimeout(() => {
+      this.pipTimer = null;
+      line.hidden = true;
+      this.pipEl.className = `pip mood-${this.pipRest}`;
+    }, PIP_LINE_MS);
+  }
+
   destroy(): void {
     if (this.expiryTimer) clearTimeout(this.expiryTimer);
+    if (this.pipTimer) clearTimeout(this.pipTimer);
+    this.pipTimer = null;
+    this.pipEl.remove();
     this.el.remove();
   }
 
