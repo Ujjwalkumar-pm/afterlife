@@ -284,3 +284,31 @@ describe('rests copy', () => {
     expect(root.querySelector('.overlay p')!.textContent).toBe('Nothing more can grow here. Undo a few moves, or restart.');
   });
 });
+
+describe('v1.2.1 polish', () => {
+  const bonusLevel = () => makeLevel({ width: 4, height: 1, ground: ['....'], target: 1, seeds: { moss: 1 }, batches: [['tyre']] });
+  it('sparkles the tray while the bonus toast shows', () => {
+    const c = new PlayController(bonusLevel());
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    hud.render(c.view, meta);
+    expect(root.querySelector('.tray')!.classList.contains('sparkle')).toBe(true);
+  });
+  it('expiry keeps the same buttons, so a tap at that moment is not lost', () => {
+    vi.useFakeTimers();
+    const c = new PlayController(bonusLevel());
+    const hud = new Hud(root, handlers());
+    hud.render(c.view, meta);
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'scrap', slot: 0, x: 1, y: 0 });
+    hud.render(c.view, meta);
+    const undo = root.querySelector('[data-action="undo"]');
+    vi.advanceTimersByTime(1600);
+    expect(root.querySelector('.toast')).toBeNull();
+    expect(root.querySelector('.tray')!.classList.contains('sparkle')).toBe(false);
+    expect(root.querySelector('[data-action="undo"]')).toBe(undo);
+    vi.useRealTimers();
+  });
+});

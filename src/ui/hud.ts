@@ -85,7 +85,15 @@ export class Hud {
     if (!Number.isFinite(next)) return;
     this.expiryTimer = setTimeout(() => {
       this.expiryTimer = null;
-      if (this.last) this.render(this.last.view, this.last.meta);
+      // Patch the DOM in place (no innerHTML rebuild), so a tap landing right now is not lost.
+      const now = this.now();
+      if (this.toastUntil <= now) {
+        this.el.querySelector('.toast')?.remove();
+        this.el.querySelector('.tray')?.classList.remove('sparkle');
+      }
+      if (this.glowUntil <= now) this.el.querySelector('.meter')?.classList.remove('glow');
+      if (this.last) this.lastHtml = this.html(this.last.view, this.last.meta);
+      this.scheduleExpiry(now);
     }, next - t + 20);
   }
 
@@ -169,7 +177,7 @@ ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coac
   <button data-action="rotate-right" aria-label="Rotate right">▶</button>
   <button data-action="mute" aria-label="Sound" aria-pressed="${m.muted}">${m.muted ? '🔇' : '🔊'}</button>
 </div>
-<footer class="tray">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
+<footer class="tray ${this.toastUntil > now ? 'sparkle' : ''}">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
 ${this.toastUntil > now ? '<div class="toast" role="status">Bonus pack: +2 moss, +1 tyre</div>' : ''}
 ${this.overlay(v, m)}`;
   }

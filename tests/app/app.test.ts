@@ -366,3 +366,36 @@ describe('App hint v1.2 fixes', () => {
     expect(c).toBeTruthy();
   });
 });
+
+describe('App v1.2.1 polish', () => {
+  const done = JSON.stringify({ version: 1, completed: [], tutorialDone: true, settings: {} });
+  it('no hint fires behind the How to Play overlay', () => {
+    vi.useFakeTimers();
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
+    app.startLevel(1);
+    click('[data-action="help"]');
+    highlight.mockClear();
+    vi.advanceTimersByTime(3500);
+    expect(highlight.mock.calls.filter((c) => c[0] !== null)).toEqual([]);
+    vi.useRealTimers();
+  });
+  it('hovering (preview only) does not cancel a shown hint', () => {
+    vi.useFakeTimers();
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
+    app.startLevel(1);
+    vi.advanceTimersByTime(3100);
+    const shown = highlight.mock.calls.at(-1)![0];
+    expect(shown).not.toBeNull();
+    app.controller!.hover({ x: 0, y: 0 });
+    expect(highlight.mock.calls.at(-1)![0]).toEqual(shown);
+    vi.useRealTimers();
+  });
+  it('level cards announce their stars in the button label', () => {
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, stars: { 'bus-stop': 2 }, settings: {} });
+    new App(root, stage, memoryStore({ [SAVE_KEY]: saved }), LEVELS, opts);
+    click('[data-nav="select"]');
+    expect(root.querySelector('[data-level="0"]')!.getAttribute('aria-label')).toBe('Bus Stop, Restored, 2 of 3 stars');
+  });
+});

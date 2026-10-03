@@ -95,3 +95,5 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 @keyframes star-pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .stars-mini { color: #f2c14e; letter-spacing: 2px; font-size: 15px; }
 .toast { position: absolute; left: 50%; bottom: calc(max(12px, env(safe-area-inset-bottom)) + 70px); transform: translateX(-50%); background: #f2c14e; color: #23251f; font-weight: 700; padding: 8px 16px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); animation: fade-in 200ms ease-out; }
+.tray.sparkle { box-shadow: inset 0 2px 0 #f2c14e; animation: tray-sparkle 700ms ease-out 2; }
+@keyframes tray-sparkle { 50% { box-shadow: inset 0 2px 0 #f2c14e, 0 -10px 30px rgba(242, 193, 78, 0.45); } }

@@ -116,6 +116,9 @@ export class App {
     const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null });
     let lastOverlay = ctrl.view.overlay;
     let lastProgress = ctrl.view.progress;
+    let hintState = ctrl.view.state;
+    let hintSel = JSON.stringify(ctrl.view.selection);
+    let hintOverlay = ctrl.view.overlay;
     this.unsubscribe = ctrl.onChange((view, events) => {
       if (events.some((e) => e.type === 'won')) {
         this.save = markCompleted(this.save, level.id);
@@ -144,7 +147,14 @@ export class App {
         }
       }
       hud.render(view, meta());
-      this.scheduleHint();
+      // Hover-only changes (a new preview) must not cancel a shown hint; real changes do.
+      const selKey = JSON.stringify(view.selection);
+      if (view.state !== hintState || selKey !== hintSel || view.overlay !== hintOverlay) {
+        hintState = view.state;
+        hintSel = selKey;
+        hintOverlay = view.overlay;
+        this.scheduleHint();
+      }
     });
     this.renderHud = () => hud.render(ctrl.view, meta());
     hud.render(ctrl.view, meta());
@@ -231,7 +241,7 @@ export class App {
     this.hintTimer = setTimeout(() => {
       this.hintTimer = null;
       // The tutorial does its own pointing; the hint only helps once it is over.
-      if (this.controller !== ctrl || this.tutorial || ctrl.view.overlay !== 'none') return;
+      if (this.controller !== ctrl || this.tutorial || this.howto || ctrl.view.overlay !== 'none') return;
       const move = suggestMove(ctrl.view.state, ctrl.view.selection);
       if (!move) return;
       if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) ctrl.select(move.selection);
@@ -330,7 +340,7 @@ export class App {
         const cards = this.levels
           .map((l, i) => {
             const st = statuses[i]!;
-            return `<li><button class="level-card ${st}" data-level="${i}" ${st === 'locked' ? 'disabled' : ''} aria-label="${esc(l.name)}, ${STATUS_TEXT[st]}"><span class="num">${i + 1}</span><span class="name">${esc(l.name)}</span><span class="status">${STATUS_TEXT[st]}</span>${this.save.stars[l.id] ? `<span class="stars-mini" aria-label="${this.save.stars[l.id]} stars">${'★'.repeat(this.save.stars[l.id]!)}${'☆'.repeat(3 - this.save.stars[l.id]!)}</span>` : ''}</button></li>`;
+            return `<li><button class="level-card ${st}" data-level="${i}" ${st === 'locked' ? 'disabled' : ''} aria-label="${esc(l.name)}, ${STATUS_TEXT[st]}${this.save.stars[l.id] ? `, ${this.save.stars[l.id]} of 3 stars` : ''}"><span class="num">${i + 1}</span><span class="name">${esc(l.name)}</span><span class="status">${STATUS_TEXT[st]}</span>${this.save.stars[l.id] ? `<span class="stars-mini" aria-hidden="true">${'★'.repeat(this.save.stars[l.id]!)}${'☆'.repeat(3 - this.save.stars[l.id]!)}</span>` : ''}</button></li>`;
           })
           .join('');
         return `<main class="screen select-screen"><h2>Choose a place</h2><ol class="level-grid">${cards}</ol>${back}</main>`;
