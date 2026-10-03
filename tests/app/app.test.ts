@@ -569,4 +569,14 @@ describe('App v1.4 hints', () => {
     app.controller!.tap(tile, 'touch');
     expect(highlight).toHaveBeenLastCalledWith(null);
   });
+  it('a restart clears a shown hint, so the next hint is charged', () => {
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    click('[data-action="hint"]');
+    click('[data-action="restart"]');
+    expect(highlight).toHaveBeenLastCalledWith(null);
+    click('[data-action="hint"]');
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
+  });
 });

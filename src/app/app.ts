@@ -114,6 +114,9 @@ export class App {
       restart: () => {
         this.hintsUsed = 0;
         ctrl.restart();
+        // Restarting an untouched board changes nothing, so clear a shown hint explicitly.
+        this.scheduleHint();
+        this.renderHud?.();
       },
       rotate: (dir) => ctrl.rotate(dir),
       menu: () => this.show('select'),
