@@ -648,6 +648,7 @@ describe('Reset game (Settings)', () => {
   it('asks first, in the page, and Cancel keeps everything', () => {
     const store = memoryStore({ [SAVE_KEY]: full });
     new App(root, stage, store, LEVELS, opts);
+    const migrated = store.data[SAVE_KEY];
     click('[data-nav="settings"]');
     click('[data-action="reset-ask"]');
     const dialog = root.querySelector('.reset-confirm')!;
@@ -656,7 +657,7 @@ describe('Reset game (Settings)', () => {
     expect(document.activeElement).toBe(root.querySelector('[data-action="reset-cancel"]'));
     click('[data-action="reset-cancel"]');
     expect(root.querySelector('.reset-confirm')).toBeNull();
-    expect(JSON.parse(store.data[SAVE_KEY]!)).toMatchObject({ completed: ['bus-stop', 'rooftop'], stars: { 'bus-stop': 3 }, hintsUsed: { 'petrol-station': 2 } });
+    expect(store.data[SAVE_KEY]).toBe(migrated);
   });
 
   it('Erase everything wipes progress, stars, hints, story, tutorial and settings, and returns to a fresh title', () => {
@@ -683,11 +684,12 @@ describe('Reset game (Settings)', () => {
   it('Esc cancels the confirmation', () => {
     const store = memoryStore({ [SAVE_KEY]: full });
     new App(root, stage, store, LEVELS, opts);
+    const migrated = store.data[SAVE_KEY];
     click('[data-nav="settings"]');
     click('[data-action="reset-ask"]');
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(root.querySelector('.reset-confirm')).toBeNull();
-    expect(JSON.parse(store.data[SAVE_KEY]!)).toMatchObject({ completed: ['bus-stop', 'rooftop'], stars: { 'bus-stop': 3 }, hintsUsed: { 'petrol-station': 2 } });
+    expect(store.data[SAVE_KEY]).toBe(migrated);
   });
 
   it('still resets the current session when storage cannot be written', () => {
@@ -782,5 +784,76 @@ describe('v1.6 celebrations and badges', () => {
     make(store);
     expect(JSON.parse(store.data[SAVE_KEY]!).badges).toEqual({ 'bus-stop': { date: '2026-10-04' } });
     vi.useRealTimers();
+  });
+  it('celebrates once per attempt: undo past the win and winning again does not buzz twice', () => {
+    const { app, haptics, confetti } = make(memoryStore({ [SAVE_KEY]: seenDone }));
+    app.startLevel(0);
+    win(app);
+    click('[data-action="keep"]');
+    app.controller!.undo();
+    app.controller!.play(LEVELS[0]!.solution.at(-1)!);
+    expect(haptics).toHaveBeenCalledTimes(1);
+    expect(confetti).toHaveBeenCalledTimes(1);
+    click('[data-action="restart"]');
+    win(app);
+    expect(haptics).toHaveBeenCalledTimes(2);
+  });
+
+  it('a second tap on Share while sharing does nothing', async () => {
+    let finish!: (r: 'shared') => void;
+    const shareBadge = vi.fn(() => new Promise<'shared'>((r) => (finish = r)));
+    const app = new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, { ...opts, haptics: vi.fn(), confetti: vi.fn(), shareBadge });
+    app.startLevel(1);
+    win(app, 1);
+    click('[data-action="share-badge"]');
+    click('[data-action="share-badge"]');
+    expect(shareBadge).toHaveBeenCalledTimes(1);
+    finish('shared');
+    await Promise.resolve();
+    await Promise.resolve();
+    click('[data-action="share-badge"]');
+    expect(shareBadge).toHaveBeenCalledTimes(2);
+  });
+
+  it('on a replay the panel says "Your … badge" and shows the best when this try scored lower', () => {
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, storySeen: true, stars: { 'bus-stop': 3 }, badges: { 'bus-stop': { date: '2026-10-01' } }, settings: {} });
+    const { app } = make(memoryStore({ [SAVE_KEY]: saved }));
+    app.startLevel(0);
+    click('[data-action="hint"]');
+    click('[data-action="hint"]');
+    win(app);
+    const panel = root.querySelector('.overlay .badge-earned')!;
+    expect(panel.textContent).toContain('Your Bus Stop badge');
+    expect(panel.textContent).toContain('Best: ★★★');
+  });
+
+  it('Badges screen buttons name their badge', () => {
+    const saved = JSON.stringify({ version: 1, completed: ['bus-stop'], tutorialDone: true, storySeen: true, stars: { 'bus-stop': 3 }, badges: { 'bus-stop': { date: '2026-10-02' } }, settings: {} });
+    make(memoryStore({ [SAVE_KEY]: saved }));
+    click('[data-nav="badges"]');
+    expect(root.querySelector('[data-share-badge="bus-stop"]')!.getAttribute('aria-label')).toBe('Share the Bus Stop badge');
+  });
+
+  it('messages are announced through one live region that stays on the page', async () => {
+    const { app } = make(memoryStore({ [SAVE_KEY]: seenDone }));
+    const live = root.querySelector('.app-live')!;
+    expect(live.getAttribute('aria-live')).toBe('polite');
+    app.startLevel(1);
+    win(app, 1);
+    click('[data-action="share-badge"]');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(root.querySelector('.app-live')).toBe(live);
+    expect(live.textContent).toBe('Badge saved as an image');
+  });
+
+  it('the Vibration switch sits with the other toggles and is hidden where the device cannot vibrate', () => {
+    make(memoryStore({ [SAVE_KEY]: seenDone }));
+    click('[data-nav="settings"]');
+    const labels = [...root.querySelectorAll('.settings-screen .toggle')].map((l) => l.textContent!.trim());
+    expect(labels.indexOf('Vibration')).toBe(labels.indexOf('Reduce motion') + 1);
+    new App(root, stage, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    click('[data-nav="settings"]');
+    expect(root.querySelector('[data-setting="vibration"]')).toBeNull();
   });
 });

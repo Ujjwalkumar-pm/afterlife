@@ -216,7 +216,7 @@ export type ShareResult = 'shared' | 'saved' | 'cancelled';
 
 /** Opens the share sheet with the badge image where files can be shared; otherwise downloads it. */
 export async function shareBadge(b: BadgeInput & { stars: 1 | 2 | 3; date: string }): Promise<ShareResult> {
-  const blob = await badgePng(b);
+  const blob = await internals.png(b);
   const file = new File([blob], badgeFileName(b.id), { type: 'image/png' });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.canShare?.({ files: [file] }) && nav.share) {
@@ -224,7 +224,9 @@ export async function shareBadge(b: BadgeInput & { stars: 1 | 2 | 3; date: strin
       await nav.share({ files: [file], title: `Afterlife — ${b.name} badge`, text: shareText(b.name, b.stars) });
       return 'shared';
     } catch (err) {
-      if ((err as DOMException)?.name === 'AbortError') return 'cancelled';
+      // Cancelled, or a sheet is already open: never fall through to a surprise download.
+      const name = (err as DOMException)?.name;
+      if (name === 'AbortError' || name === 'InvalidStateError') return 'cancelled';
     }
   }
   const url = URL.createObjectURL(blob);
@@ -237,3 +239,6 @@ export async function shareBadge(b: BadgeInput & { stars: 1 | 2 | 3; date: strin
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   return 'saved';
 }
+
+/** Swappable in tests (happy-dom cannot rasterise SVG). */
+export const internals = { png: badgePng };

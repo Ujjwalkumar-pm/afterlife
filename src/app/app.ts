@@ -69,6 +69,10 @@ export class App {
   private nudge = false;
   private lastStars: 1 | 2 | 3 | null = null;
   private story: StoryPlayer | null = null;
+  /** One polite live region that survives screen changes, so messages are reliably read aloud. */
+  private readonly live: HTMLElement = Object.assign(document.createElement('div'), { className: 'app-live' });
+  private sharing = false;
+  private badgeNew = false;
   private resetDialog: HTMLElement | null = null;
   private readonly onResetKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') this.closeResetConfirm();
@@ -85,6 +89,8 @@ export class App {
     private readonly options: AppOptions,
     private readonly sound: Sound = silentSound,
   ) {
+    this.live.setAttribute('aria-live', 'polite');
+    this.live.setAttribute('role', 'status');
     this.save = loadSave(store);
     // Places restored before badges existed get theirs now, dated today.
     const missing = this.save.completed.filter((id) => !this.save.badges[id]);
@@ -113,6 +119,11 @@ export class App {
     this.show('title');
   }
 
+  /** The Vibration switch only shows where the device can vibrate (not iPhone Safari). */
+  get canVibrate(): boolean {
+    return !!this.options.haptics || (typeof navigator !== 'undefined' && 'vibrate' in navigator);
+  }
+
   get reducedMotion(): boolean {
     return this.options.prefersReducedMotion || this.save.settings.reducedMotion;
   }
@@ -122,6 +133,7 @@ export class App {
     this.screen = screen;
     this.sound.setProgress(0);
     this.root.innerHTML = this.template(screen);
+    this.root.appendChild(this.live);
     if (screen === 'title') this.startDemo();
     else this.stage.show(null, { reducedMotion: this.reducedMotion, interactive: false });
   }
@@ -133,15 +145,18 @@ export class App {
     this.screen = 'play';
     this.levelIndex = index;
     this.root.innerHTML = '';
+    this.root.appendChild(this.live);
     const ctrl = new PlayController(level, { assist: true });
     this.controller = ctrl;
     this.hintsUsed = this.save.hintsUsed[level.id] ?? 0;
     this.tutorial = index === 0 && (opts.tutorial || !this.save.tutorialDone) ? new Tutorial(planTutorial(level)) : null;
     this.tutorial?.update(ctrl.view, []);
+    let celebrated = false;
     const hud = new Hud(this.root, {
       select: (sel) => ctrl.select(sel),
       undo: () => ctrl.undo(),
       restart: () => {
+        celebrated = false;
         ctrl.restart();
         // Restarting an untouched board changes nothing, so clear a shown hint explicitly.
         this.scheduleHint();
@@ -158,7 +173,7 @@ export class App {
       hint: () => this.useHint(),
     });
     this.hud = hud;
-    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null, hintsLeft: MAX_HINTS - this.hintsUsed, hintAvailable: !this.tutorial && ctrl.view.overlay === 'none' && !ctrl.view.state.won, nudge: this.nudge, hintsUsed: this.hintsUsed, badge: ctrl.view.overlay === 'restored' ? ((b) => (b ? badgeSvg(b) : undefined))(this.badgeFor(level.id)) : undefined });
+    const meta = () => ({ name: level.name, hint: level.hint, hasNext: index + 1 < this.levels.length, muted: this.save.settings.muted || !this.sound.available, tutorial: this.tutorial?.current ?? null, stars: ctrl.view.overlay === 'restored' ? this.lastStars : null, hintsLeft: MAX_HINTS - this.hintsUsed, hintAvailable: !this.tutorial && ctrl.view.overlay === 'none' && !ctrl.view.state.won, nudge: this.nudge, hintsUsed: this.hintsUsed, badge: ctrl.view.overlay === 'restored' ? this.winBadge(level.id, level.name) : undefined });
     let lastOverlay = ctrl.view.overlay;
     let lastProgress = ctrl.view.progress;
     let hintState = ctrl.view.state;
@@ -174,9 +189,12 @@ export class App {
           const { [level.id]: _done, ...rest } = this.save.hintsUsed;
           this.save = { ...this.save, hintsUsed: rest };
         }
+        this.badgeNew = !this.save.badges[level.id];
         this.save = recordBadge(this.save, level.id, todayIso());
         writeSave(this.store, this.save);
-        this.celebrateWin();
+        // One celebration per attempt: undoing past the win and winning again doesn't buzz twice.
+        if (!celebrated) this.celebrateWin();
+        celebrated = true;
       }
       const cues = cuesFor(events);
       const milestone = milestonesCrossed(lastProgress, view.progress).length > 0;
@@ -320,9 +338,11 @@ export class App {
 
   private toast(text: string): void {
     this.root.querySelector('.app-toast')?.remove();
+    if (!this.live.isConnected) this.root.appendChild(this.live);
+    this.live.textContent = text;
     const toast = document.createElement('div');
     toast.className = 'toast app-toast';
-    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-hidden', 'true');
     toast.textContent = text;
     this.root.appendChild(toast);
     setTimeout(() => toast.remove(), 2500);
@@ -342,6 +362,14 @@ export class App {
     }
   }
 
+  /** The win panel's badge block: newly earned, or "your badge" on a replay (with the best when this try scored lower). */
+  private winBadge(id: string, name: string): { svg: string; title: string; note?: string } | undefined {
+    const b = this.badgeFor(id);
+    if (!b) return undefined;
+    const note = this.lastStars !== null && this.lastStars < b.stars ? `Best: ${'★'.repeat(b.stars)}${'☆'.repeat(3 - b.stars)}` : undefined;
+    return { svg: badgeSvg(b), title: this.badgeNew ? `You earned the ${name} badge` : `Your ${name} badge`, note };
+  }
+
   private badgeFor(id: string): BadgePayload | null {
     const level = this.levels.find((l) => l.id === id);
     const date = this.save.badges[id]?.date;
@@ -351,7 +379,8 @@ export class App {
 
   private async shareBadgeOf(id: string): Promise<void> {
     const b = this.badgeFor(id);
-    if (!b) return;
+    if (!b || this.sharing) return; // a second tap while the sheet opens would share twice
+    this.sharing = true;
     try {
       const result = await (this.options.shareBadge ?? realShareBadge)(b);
       if (result === 'shared') this.toast('Shared!');
@@ -359,6 +388,8 @@ export class App {
     } catch (err) {
       console.warn('[Afterlife] badge share failed', err);
       this.toast("Couldn't share the badge. Please try again.");
+    } finally {
+      this.sharing = false;
     }
   }
 
@@ -368,6 +399,7 @@ export class App {
     this.screen = 'story';
     this.sound.setProgress(0);
     this.root.innerHTML = '';
+    this.root.appendChild(this.live);
     this.stage.show(null, { reducedMotion: this.reducedMotion, interactive: false });
     this.story = new StoryPlayer(this.root, {
       onBeat: (n) => {
@@ -569,7 +601,7 @@ export class App {
         return `<main class="screen select-screen"><h2>Choose a place</h2><p class="progress-note">${done} of ${this.levels.length} restored</p><ol class="level-grid">${cards}</ol>${back}</main>`;
       }
       case 'settings':
-        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label><button data-nav="howto">How to play</button><label class="toggle"><input type="checkbox" data-setting="vibration" ${this.save.settings.vibration ? 'checked' : ''}> Vibration</label><button data-action="reset-ask" class="danger">Reset game</button>${back}</main>`;
+        return `<main class="screen settings-screen"><h2>Settings</h2><label class="toggle"><input type="checkbox" data-setting="sound" ${this.save.settings.muted ? '' : 'checked'}> Sound</label><label class="toggle">Volume <input type="range" min="0" max="100" step="5" data-setting="volume" value="${Math.round(this.save.settings.volume * 100)}" aria-label="Volume"></label><label class="toggle"><input type="checkbox" data-setting="reducedMotion" ${this.save.settings.reducedMotion ? 'checked' : ''}> Reduce motion</label>${this.canVibrate ? `<label class="toggle"><input type="checkbox" data-setting="vibration" ${this.save.settings.vibration ? 'checked' : ''}> Vibration</label>` : ''}<button data-nav="howto">How to play</button><button data-action="reset-ask" class="danger">Reset game</button>${back}</main>`;
       case 'howto':
         return this.howtoHtml(false);
       case 'badges': {
@@ -578,7 +610,7 @@ export class App {
           .map((l) => {
             const b = this.badgeFor(l.id);
             return b
-              ? `<li class="badge-card">${badgeSvg(b)}<button class="primary" data-share-badge="${l.id}">Share</button></li>`
+              ? `<li class="badge-card">${badgeSvg(b)}<button class="primary" data-share-badge="${l.id}" aria-label="Share the ${esc(l.name)} badge">Share</button></li>`
               : `<li class="badge-card locked">${badgeSvg({ id: l.id, name: l.name, stars: null, date: null })}<p>Restore ${esc(l.name)} to earn</p></li>`;
           })
           .join('');

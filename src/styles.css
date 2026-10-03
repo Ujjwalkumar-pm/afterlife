@@ -304,3 +304,15 @@ button.danger:hover:not(:disabled) { background: rgba(168, 74, 60, 0.4); }
 .badge-card p { margin: 0; font-size: 13px; color: var(--muted); text-align: center; text-wrap: balance; }
 .badge-card button { min-height: 40px; }
 @media (max-width: 600px), (max-height: 700px) { .badge-earned .badge-svg { width: 112px; height: 131px; } .overlay .stars { display: none; } }
+
+/* v1.6 review: panels never clip, landscape-friendly badge, two badge columns on phones, live region */
+.overlay { overflow-y: auto; justify-content: safe center; }
+.app-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.badge-note { font-size: 13px; color: #f2c14e; }
+.badge-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+@media (max-height: 500px) {
+  .badge-earned .badge-svg { width: 80px; height: 93px; }
+  .overlay h2 { font-size: 24px; }
+  .overlay .panel { gap: 8px; padding: 14px 20px; }
+  .badge-earned { flex-direction: row; gap: 10px; }
+}
