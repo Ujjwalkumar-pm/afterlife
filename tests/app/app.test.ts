@@ -518,18 +518,6 @@ describe('App v1.4 hints', () => {
     expect(hintBtn().getAttribute('aria-label')).toBe('No hints left');
   });
 
-  it('hints cap the stars, the win panel says so, and a restart gives the hints back', () => {
-    const store = memoryStore({ [SAVE_KEY]: seenDone });
-    const app = new App(root, stage, store, LEVELS, opts);
-    app.startLevel(0);
-    click('[data-action="hint"]');
-    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
-    expect(JSON.parse(store.data[SAVE_KEY]!).stars['bus-stop']).toBeLessThanOrEqual(2);
-    expect(root.querySelector('.overlay .hints-used')!.textContent).toBe('Hints used: 1 of 3');
-    click('[data-action="keep"]');
-    click('[data-action="restart"]');
-    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 3 left');
-  });
 
   it('a new place starts with 3 hints', () => {
     const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
@@ -570,16 +558,6 @@ describe('App v1.4 hints', () => {
     app.controller!.tap(tile, 'touch');
     expect(highlight).toHaveBeenLastCalledWith(null);
   });
-  it('a restart clears a shown hint, so the next hint is charged', () => {
-    const highlight = vi.fn();
-    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
-    app.startLevel(1);
-    click('[data-action="hint"]');
-    click('[data-action="restart"]');
-    expect(highlight).toHaveBeenLastCalledWith(null);
-    click('[data-action="hint"]');
-    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
-  });
   it('no nudge while a paid hint is still glowing', () => {
     vi.useFakeTimers();
     const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
@@ -610,5 +588,56 @@ describe('App v1.4 hints', () => {
     for (const m of LEVELS[0]!.solution) app.controller!.play(m);
     const clean = JSON.parse(store.data[SAVE_KEY]!).stars['bus-stop'];
     expect(clean).toBe(Math.min(2, starsFor(LEVELS[0]!, app.controller!.view.state, 0)));
+  });
+  it('hints cap the stars and the win panel says so', () => {
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const app = new App(root, stage, store, LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="hint"]');
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    expect(JSON.parse(store.data[SAVE_KEY]!).stars['bus-stop']).toBeLessThanOrEqual(2);
+    expect(root.querySelector('.overlay .hints-used')!.textContent).toBe('Hints used: 1 of 3');
+  });
+  it('restarting does not give hints back, and clears a shown hint', () => {
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore({ [SAVE_KEY]: seenDone }), LEVELS, opts);
+    app.startLevel(1);
+    click('[data-action="hint"]');
+    click('[data-action="restart"]');
+    expect(highlight).toHaveBeenLastCalledWith(null);
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
+    click('[data-action="hint"]');
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 1 left');
+  });
+  it('leaving and coming back, or reloading, keeps hints used on that place', () => {
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, store, LEVELS, opts);
+    app.startLevel(1);
+    click('[data-action="hint"]');
+    click('[data-action="menu"]');
+    app.startLevel(1);
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
+    const reloaded = new App(root, { show: vi.fn(), highlight: vi.fn() }, store, LEVELS, opts);
+    reloaded.startLevel(1);
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 2 left');
+  });
+  it('a restart after using hints still caps the stars on the replay', () => {
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const app = new App(root, stage, store, LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="hint"]');
+    click('[data-action="restart"]');
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    expect(JSON.parse(store.data[SAVE_KEY]!).stars['bus-stop']).toBeLessThanOrEqual(2);
+  });
+  it('restoring a place gives it 3 fresh hints for the next try', () => {
+    const store = memoryStore({ [SAVE_KEY]: seenDone });
+    const app = new App(root, stage, store, LEVELS, opts);
+    app.startLevel(0);
+    click('[data-action="hint"]');
+    for (const m of LEVELS[0]!.solution) app.controller!.play(m);
+    click('[data-action="menu"]');
+    app.startLevel(0);
+    expect(hintBtn().getAttribute('aria-label')).toBe('Hint, 3 left');
   });
 });

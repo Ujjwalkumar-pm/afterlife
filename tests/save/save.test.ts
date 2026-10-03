@@ -11,6 +11,14 @@ const throwingStore: Store = {
 };
 
 describe('save', () => {
+  it('hintsUsed defaults to {}, round-trips, and drops bad entries', () => {
+    expect(defaultSave().hintsUsed).toEqual({});
+    const store = memoryStore();
+    writeSave(store, { ...defaultSave(), hintsUsed: { rooftop: 2 } });
+    expect(loadSave(store).hintsUsed).toEqual({ rooftop: 2 });
+    const bad = memoryStore({ [SAVE_KEY]: JSON.stringify({ version: 1, hintsUsed: { a: 1, b: 'x', c: 9, d: -1 } }) });
+    expect(loadSave(bad).hintsUsed).toEqual({ a: 1 });
+  });
   it('storySeen defaults to false, round-trips, and old saves load as false', () => {
     expect(defaultSave().storySeen).toBe(false);
     const store = memoryStore();
@@ -46,6 +54,7 @@ describe('save', () => {
       tutorialDone: false,
       storySeen: false,
       stars: {},
+      hintsUsed: {},
       settings: { reducedMotion: false, muted: true, volume: 0.8 },
     });
   });

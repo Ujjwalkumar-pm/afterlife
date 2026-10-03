@@ -40,3 +40,8 @@
 ## 6. Testing
 - **Unit:** `renderScale`; `swipeTurn`; `starsFor` with hints; HUD hint button (count, disabled state, label); reach badge; Next preview; App hint use (cap of 3, reset on restart and on a new level, not refunded by undo, Pip line, star cap saved, win-panel line); the idle nudge (no reveal, no cost); the tutorial unaffected.
 - **Browser:** desktop and phone screenshots of the board (sharpness), a swipe-rotate run, the hint flow to the win panel with capped stars, and the tray with the Next preview. No console errors.
+
+## 7. Change log (v1.4.1, 3 Oct 2026)
+- **Hints are no longer refunded by restarting.** Ujjwal approved closing the ★★★ shortcut (use hints, restart, replay the moves).
+- Hints used on a place are saved per place (`save.hintsUsed`) and stay used through restarts, leaving the place and page reloads.
+- When the place is restored, its count is cleared, so the next attempt starts with 3 fresh hints and can earn full stars without them.

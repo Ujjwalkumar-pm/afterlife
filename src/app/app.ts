@@ -106,13 +106,13 @@ export class App {
     this.root.innerHTML = '';
     const ctrl = new PlayController(level, { assist: true });
     this.controller = ctrl;
+    this.hintsUsed = this.save.hintsUsed[level.id] ?? 0;
     this.tutorial = index === 0 && (opts.tutorial || !this.save.tutorialDone) ? new Tutorial(planTutorial(level)) : null;
     this.tutorial?.update(ctrl.view, []);
     const hud = new Hud(this.root, {
       select: (sel) => ctrl.select(sel),
       undo: () => ctrl.undo(),
       restart: () => {
-        this.hintsUsed = 0;
         ctrl.restart();
         // Restarting an untouched board changes nothing, so clear a shown hint explicitly.
         this.scheduleHint();
@@ -139,6 +139,11 @@ export class App {
         this.save = markCompleted(this.save, level.id);
         this.lastStars = starsFor(level, view.state, this.hintsUsed);
         this.save = recordStars(this.save, level.id, this.lastStars);
+        // Restored: the next attempt at this place starts with fresh hints.
+        if (level.id in this.save.hintsUsed) {
+          const { [level.id]: _done, ...rest } = this.save.hintsUsed;
+          this.save = { ...this.save, hintsUsed: rest };
+        }
         writeSave(this.store, this.save);
       }
       const cues = cuesFor(events);
@@ -325,6 +330,10 @@ export class App {
     const move = suggestMove(ctrl.view.state, ctrl.view.selection);
     if (!move) return;
     this.hintsUsed += 1;
+    // Saved per place, so restarting, leaving or reloading doesn't refund it.
+    const id = ctrl.level.id;
+    this.save = { ...this.save, hintsUsed: { ...this.save.hintsUsed, [id]: this.hintsUsed } };
+    writeSave(this.store, this.save);
     this.nudge = false;
     if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) {
       this.hintSelecting = true;

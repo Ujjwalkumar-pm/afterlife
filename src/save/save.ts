@@ -12,6 +12,8 @@ export interface SaveData {
   tutorialDone: boolean;
   storySeen: boolean;
   stars: Record<string, 1 | 2 | 3>;
+  /** Hints used per place since it was last restored (they are not refunded by restarting or leaving). */
+  hintsUsed: Record<string, number>;
   settings: Settings;
 }
 
@@ -23,6 +25,7 @@ export const defaultSave = (): SaveData => ({
   tutorialDone: false,
   storySeen: false,
   stars: {},
+  hintsUsed: {},
   settings: { reducedMotion: false, muted: false, volume: 0.8 },
 });
 
@@ -42,6 +45,11 @@ export function loadSave(store: Store | null): SaveData {
       stars: Object.fromEntries(
         Object.entries(typeof d.stars === 'object' && d.stars !== null ? (d.stars as Record<string, unknown>) : {}).filter(
           (e): e is [string, 1 | 2 | 3] => e[1] === 1 || e[1] === 2 || e[1] === 3,
+        ),
+      ),
+      hintsUsed: Object.fromEntries(
+        Object.entries(typeof d.hintsUsed === 'object' && d.hintsUsed !== null ? (d.hintsUsed as Record<string, unknown>) : {}).filter(
+          (e): e is [string, number] => Number.isInteger(e[1]) && (e[1] as number) >= 1 && (e[1] as number) <= 3,
         ),
       ),
       settings: {
