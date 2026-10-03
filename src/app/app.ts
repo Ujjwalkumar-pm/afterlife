@@ -10,6 +10,8 @@ import { milestonesCrossed, starsFor } from '../game/scoring';
 import { ICONS } from '../ui/icons';
 import { silentSound, type Sound } from '../audio/sound';
 import { levelStatuses, type LevelStatus } from './progress';
+import { pipFor } from '../game/pip';
+import { STORY_BEATS, StoryPlayer } from '../ui/story';
 
 export interface Stage {
   show(ctrl: PlayController | null, opts: AttachOptions): void;
@@ -22,7 +24,8 @@ export interface AppOptions {
   demoIntervalMs: number | null;
   prefersReducedMotion: boolean;
 }
-export type Screen = 'title' | 'select' | 'settings' | 'credits' | 'howto' | 'play';
+export type Screen = 'title' | 'select' | 'settings' | 'credits' | 'howto' | 'play' | 'story';
+type MenuScreen = Exclude<Screen, 'play' | 'story'>;
 
 const STATUS_TEXT: Record<LevelStatus, string> = { locked: 'Locked', open: 'Ready', completed: 'Restored' };
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -42,6 +45,7 @@ export class App {
   private hintTimer: ReturnType<typeof setTimeout> | null = null;
   private hintShown = false;
   private lastStars: 1 | 2 | 3 | null = null;
+  private story: StoryPlayer | null = null;
   private readonly onHowtoKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') this.closeHowTo();
   };
@@ -80,7 +84,7 @@ export class App {
     return this.options.prefersReducedMotion || this.save.settings.reducedMotion;
   }
 
-  show(screen: Exclude<Screen, 'play'>): void {
+  show(screen: MenuScreen): void {
     this.teardown();
     this.screen = screen;
     this.sound.setProgress(0);
@@ -127,8 +131,10 @@ export class App {
         writeSave(this.store, this.save);
       }
       const cues = cuesFor(events);
-      if (milestonesCrossed(lastProgress, view.progress).length > 0) cues.push('milestone');
+      const milestone = milestonesCrossed(lastProgress, view.progress).length > 0;
+      if (milestone) cues.push('milestone');
       lastProgress = view.progress;
+      const newOverlay = view.overlay !== lastOverlay ? view.overlay : 'none';
       if (view.overlay !== lastOverlay && view.overlay === 'restored') cues.push('won');
       if (view.overlay !== lastOverlay && view.overlay === 'rests') cues.push('rests');
       lastOverlay = view.overlay;
@@ -147,6 +153,7 @@ export class App {
         }
       }
       hud.render(view, meta());
+      hud.setPip(pipFor({ newOverlay, tutorial: !!this.tutorial, events, milestone, hint: false }));
       // Hover-only changes (a new preview) must not cancel a shown hint; real changes do.
       const selKey = JSON.stringify(view.selection);
       if (view.state !== hintState || selKey !== hintSel || view.overlay !== hintOverlay) {
@@ -158,6 +165,7 @@ export class App {
     });
     this.renderHud = () => hud.render(ctrl.view, meta());
     hud.render(ctrl.view, meta());
+    hud.setPip(pipFor({ newOverlay: 'none', tutorial: !!this.tutorial, events: [], milestone: false, hint: false }));
     this.scheduleHint();
     this.stage.show(ctrl, {
       reducedMotion: this.reducedMotion,
@@ -177,6 +185,8 @@ export class App {
   }
 
   private teardown(): void {
+    this.story?.destroy();
+    this.story = null;
     if (this.demoTimer) clearInterval(this.demoTimer);
     this.demoTimer = null;
     this.unsubscribe?.();
@@ -220,12 +230,44 @@ export class App {
     }, this.options.demoIntervalMs);
   }
 
+  /** The intro story. Seen once on the first Play (saved), replayable from the title. */
+  private playStory(then: MenuScreen): void {
+    this.teardown();
+    this.screen = 'story';
+    this.sound.setProgress(0);
+    this.root.innerHTML = '';
+    this.stage.show(null, { reducedMotion: this.reducedMotion, interactive: false });
+    this.story = new StoryPlayer(this.root, {
+      onBeat: (n) => {
+        if (n !== STORY_BEATS.length) return;
+        try {
+          this.sound.play(['milestone']);
+        } catch (err) {
+          console.warn('[Afterlife] sound cue failed', err);
+        }
+      },
+      onDone: () => {
+        this.story = null;
+        if (!this.save.storySeen) {
+          this.save = { ...this.save, storySeen: true };
+          writeSave(this.store, this.save);
+        }
+        this.show(then);
+      },
+    });
+  }
+
   private onClick(e: Event): void {
     const el = e.target as HTMLElement;
     if (el.closest('[data-close-howto]')) return this.closeHowTo();
     if (el.closest('[data-replay-tutorial]')) return this.startLevel(0, { tutorial: true });
     const nav = el.closest<HTMLElement>('[data-nav]');
-    if (nav) return this.show(nav.dataset.nav as Exclude<Screen, 'play'>);
+    if (nav) {
+      const to = nav.dataset.nav as MenuScreen | 'story';
+      if (to === 'story') return this.playStory('title');
+      if (to === 'select' && this.screen === 'title' && !this.save.storySeen) return this.playStory('select');
+      return this.show(to);
+    }
     const card = el.closest<HTMLButtonElement>('[data-level]');
     if (card && !card.disabled) this.startLevel(Number(card.dataset.level));
   }
@@ -247,6 +289,7 @@ export class App {
       if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) ctrl.select(move.selection);
       this.hintShown = true;
       this.stage.highlight?.(move.tile);
+      this.hud?.setPip(pipFor({ newOverlay: 'none', tutorial: false, events: [], milestone: false, hint: true }));
     }, 3000);
   }
 
@@ -263,6 +306,7 @@ export class App {
       this.save = { ...this.save, tutorialDone: true };
       writeSave(this.store, this.save);
     }
+    this.hud?.setPip({ mood: 'idle', line: null });
     this.renderHud?.();
   }
 
@@ -330,11 +374,11 @@ export class App {
     }
   }
 
-  private template(screen: Exclude<Screen, 'play'>): string {
+  private template(screen: MenuScreen): string {
     const back = '<button data-nav="title">Back</button>';
     switch (screen) {
       case 'title':
-        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu"><button data-nav="select" class="primary">Play</button><button data-nav="howto">How to Play</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
+        return `<main class="screen title-screen"><h1 class="logo">Afterlife</h1><p class="tagline">Nature takes back what we left behind.</p><nav class="menu"><button data-nav="select" class="primary">Play</button><button data-nav="howto">How to Play</button><button data-nav="story">Story</button><button data-nav="settings">Settings</button><button data-nav="credits">Credits</button></nav></main>`;
       case 'select': {
         const statuses = levelStatuses(this.levels.map((l) => l.id), this.save.completed);
         const cards = this.levels
