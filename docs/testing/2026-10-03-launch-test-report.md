@@ -14,7 +14,8 @@ title: "Afterlife — Pre-Launch Test Report"
 
 - No defects are open.
 - 4 defects were found and fixed during this campaign (§11).
-- Three things are not verified yet, and none of them blocks launch: a check on your own phones, real-player playtesting, and Firefox. They are listed as launch-week actions (§12).
+- Two things are not verified yet, and neither blocks launch: a check on your own phones, and real-player playtesting. They are listed as launch-week actions (§12).
+- Firefox is out of scope for this launch, at the Director's request.
 
 </div>
 
@@ -52,7 +53,7 @@ title: "Afterlife — Pre-Launch Test Report"
 - **Browser engines:**
   - **Chromium:** Google Chrome, which also covers Edge, Samsung Internet, Opera and Android browsers.
   - **WebKit 26.6:** the Safari engine, used by Safari on Mac and by every browser on iPhone and iPad.
-  - Firefox could not be launched in the test lab (see §12).
+  - Firefox is out of scope for this launch, at the Director's decision on 3 Oct 2026.
 - **Tools:**
   - Vitest 5 for unit and integration tests;
   - Playwright for browser automation;
@@ -345,13 +346,11 @@ In a place: ☰ places · ? help · 💡 hint · ↶ undo · ⟲ restart · turn
 
 ## 12. Known limitations (not verified in the lab)
 
+- **Out of scope:** Firefox is excluded from this launch by the Director's decision. Chrome, Edge, Samsung Internet, Opera and every iPhone/iPad browser are covered.
+
 - **Real phones.**
   - Vibration, the native share sheet (especially the iPhone share sheet with an image) and real phone GPUs were simulated, not tried on hardware.
   - **Action:** a 15-minute smoke test on your own iPhone and an Android phone (§13).
-- **Firefox.**
-  - Playwright's Firefox build would not start on this Mac's operating system (macOS 27).
-  - The game uses only standard web features that Firefox supports.
-  - **Action:** open the game once in Firefox desktop and on Android.
 - **Real players.**
   - Simulated players can't judge fun, clarity or difficulty.
   - **Action:** a short playtest with 5–8 people (§13).
@@ -367,7 +366,6 @@ In a place: ☰ places · ? help · 💡 hint · ↶ undo · ⟲ restart · turn
 | **Launch week** | Playtest with 5–8 people who haven't seen the game. Watch silently for 15 min, then ask: *What was confusing? When did you want to quit? Did the hint feel fair? Would you share the badge?* | The main open question is the difficulty from Petrol Station onwards (§11) |
 | **Launch week** | Watch the Vercel Speed Insights dashboard daily, and look at the real-user scores on phones | Confirms the lab performance numbers with real players |
 | Soon | Add automatic testing on GitHub (run the 374 tests on every push) | Stops a future change from breaking the live game |
-| Soon | Open the game once in Firefox (desktop and Android) | Closes the one browser gap |
 | Soon | If playtesters find the later places hard, add a gentle prompt such as "Try Undo — or tap the bulb" when "The garden rests" first appears, or make that place's target slightly lower | Keeps the cozy promise without making it trivial |
 | Later | Split the game code so the first screen loads before the game engine (394 KB compressed today) | Faster first load on slow networks |
 | Later | Pre-render the badge image as the win panel opens | Protects the iPhone share sheet if the image takes long to make |
