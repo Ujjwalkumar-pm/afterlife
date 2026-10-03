@@ -10,6 +10,7 @@ export interface SaveData {
   version: 1;
   completed: string[];
   tutorialDone: boolean;
+  storySeen: boolean;
   stars: Record<string, 1 | 2 | 3>;
   settings: Settings;
 }
@@ -20,6 +21,7 @@ export const defaultSave = (): SaveData => ({
   version: 1,
   completed: [],
   tutorialDone: false,
+  storySeen: false,
   stars: {},
   settings: { reducedMotion: false, muted: false, volume: 0.8 },
 });
@@ -36,6 +38,7 @@ export function loadSave(store: Store | null): SaveData {
       version: 1,
       completed: Array.isArray(d.completed) ? d.completed.filter((x): x is string => typeof x === 'string') : [],
       tutorialDone: d.tutorialDone === true,
+      storySeen: d.storySeen === true,
       stars: Object.fromEntries(
         Object.entries(typeof d.stars === 'object' && d.stars !== null ? (d.stars as Record<string, unknown>) : {}).filter(
           (e): e is [string, 1 | 2 | 3] => e[1] === 1 || e[1] === 2 || e[1] === 3,
