@@ -243,14 +243,14 @@ describe('Hud v1.2', () => {
     expect(root.querySelectorAll('.overlay .star.on')).toHaveLength(2);
     expect(root.querySelector('.overlay .stars')!.getAttribute('aria-label')).toBe('2 of 3 stars');
   });
-  it('toasts "Bonus crate!" when bonusUsed rises', () => {
+  it('toasts the bonus pack when bonusUsed rises', () => {
     let t = 0;
     const c = new PlayController(makeLevel({ batches: [['tyre']] }));
     const hud = new Hud(root, handlers(), () => t);
     hud.render(c.view, meta);
     c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
     hud.render(c.view, meta);
-    expect(root.querySelector('.toast')!.textContent).toBe('Bonus crate!');
+    expect(root.querySelector('.toast')!.textContent).toBe('Bonus pack: +2 moss, +1 tyre');
     t = 2000;
     hud.render(c.view, meta);
     expect(root.querySelector('.toast')).toBeNull();
@@ -260,7 +260,7 @@ describe('Hud v1.2', () => {
 describe('Hud timed effects expire on their own', () => {
   it('hides the bonus toast and the meter glow without another render', () => {
     vi.useFakeTimers();
-    const c = new PlayController(makeLevel({ width: 3, height: 1, ground: ['...'], target: 1, seeds: { moss: 1 }, batches: [['tyre']] }));
+    const c = new PlayController(makeLevel({ width: 4, height: 1, ground: ['....'], target: 1, seeds: { moss: 1 }, batches: [['tyre']] }));
     const hud = new Hud(root, handlers());
     hud.render(c.view, meta);
     c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
@@ -272,5 +272,15 @@ describe('Hud timed effects expire on their own', () => {
     expect(root.querySelector('.toast')).toBeNull();
     expect(root.querySelector('.meter')!.classList.contains('glow')).toBe(false);
     vi.useRealTimers();
+  });
+});
+
+describe('rests copy', () => {
+  it('explains what to do', () => {
+    const c = new PlayController(makeLevel({ width: 2, height: 1, ground: ['..'], seeds: { moss: 2 }, batches: [['tyre']] }));
+    c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
+    c.play({ type: 'seed', plant: 'moss', x: 1, y: 0 });
+    new Hud(root, handlers()).render(c.view, meta);
+    expect(root.querySelector('.overlay p')!.textContent).toBe('Nothing more can grow here. Undo a few moves, or restart.');
   });
 });

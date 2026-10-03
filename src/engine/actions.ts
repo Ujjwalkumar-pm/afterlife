@@ -71,7 +71,9 @@ export function harvest(s: GameState, p: Pos): ActionResult {
 export function grantBonus(s: GameState): ActionResult {
   if (!canBonus(s)) return fail('bonus not available');
   const next = cloneState(s);
-  next.tray = ['crate'];
+  // A bonus pack: a moss seed plus a tyre, so there is always something new to grow.
+  next.tray = ['tyre'];
+  next.seeds.moss += 2;
   next.bonusUsed += 1;
   return finish(s, next, [{ type: 'bonus' }]);
 }

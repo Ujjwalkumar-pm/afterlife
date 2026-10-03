@@ -111,3 +111,13 @@ Stars are computed when the `won` event fires. The save gains `stars: Record<lev
 ## 8. Out of scope
 
 New levels, leaderboards and accounts, daily challenges, a timer mode, and new plant types.
+
+## 9. Change log (review fixes, 3 Oct 2026)
+
+- **Bonus becomes a bonus pack: 2 moss seeds and a tyre.** It needs 2 free tiles. A crate alone could not grow anything once plants were exhausted: hint-following players got 8–21 useless crates on levels 3–5, then a dead end.
+- **"Stuck" ("The garden rests…")** now means no legal move left (no bloom to harvest, no scrap with a free tile, no seed with a valid tile) and no bonus pack possible. This replaces "no free tile", which left a limbo with one free tile and nothing to place.
+- **The idle hint suggests the most useful item and tile** (`suggestMove`) and switches the tray to that item. Its order: harvest a bloom → scrap that adds cover → a seed while scrap remains → scrap that feeds any plant → any seed → any scrap. It stays quiet while the tutorial runs.
+- **With assist, tapping the already-selected item keeps it selected.**
+- **Petrol Station target 0.55 → 0.50** (re-solved).
+- **A regression test proves that a player who only follows the hint finishes every level** with at most 8 bonus packs.
+- **The rests text** is now "Nothing more can grow here. Undo a few moves, or restart." The toast is now "Bonus pack: +2 moss, +1 tyre".

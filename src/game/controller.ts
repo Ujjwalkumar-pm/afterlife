@@ -97,7 +97,8 @@ export class PlayController {
     if (sel?.kind === 'seed' && !(s.seeds[sel.plant] > 0)) return;
     if (sel?.kind === 'scrap' && s.tray[sel.slot] === undefined) return;
     const same = sel !== null && JSON.stringify(sel) === JSON.stringify(this.selection);
-    this.selection = same ? null : sel;
+    // With assist, tapping the already-chosen item keeps it (a beginner should never lose their seed).
+    this.selection = same && !this.assist ? null : sel;
     this.refreshPreview();
     this.emit([]);
   }

@@ -89,7 +89,8 @@ describe('placeScrap', () => {
     const b = applyMove(state, { type: 'bonus' });
     expect(b.ok).toBe(true);
     if (!b.ok) return;
-    expect(b.state.tray).toEqual(['crate']);
+    expect(b.state.tray).toEqual(['tyre']);
+    expect(b.state.seeds.moss).toBe(state.seeds.moss + 2);
     expect(b.state.bonusUsed).toBe(1);
     expect(b.events).toEqual([{ type: 'bonus' }]);
     expect(applyMove(b.state, { type: 'bonus' })).toEqual({ ok: false, reason: 'bonus not available' });

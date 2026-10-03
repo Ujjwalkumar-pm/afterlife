@@ -5,7 +5,7 @@ import { loadSave, markCompleted, recordStars, writeSave, type SaveData, type St
 import { Hud } from '../ui/hud';
 import { cuesFor } from '../audio/cues';
 import { planTutorial, Tutorial } from '../game/tutorial';
-import { bestTile } from '../game/hints';
+import { suggestMove } from '../game/hints';
 import { milestonesCrossed, starsFor } from '../game/scoring';
 import { ICONS } from '../ui/icons';
 import { silentSound, type Sound } from '../audio/sound';
@@ -230,11 +230,13 @@ export class App {
     if (!ctrl) return;
     this.hintTimer = setTimeout(() => {
       this.hintTimer = null;
-      if (this.controller !== ctrl || this.tutorial?.highlight || ctrl.view.overlay !== 'none') return;
-      const tile = bestTile(ctrl.view.state, ctrl.view.selection);
-      if (!tile) return;
+      // The tutorial does its own pointing; the hint only helps once it is over.
+      if (this.controller !== ctrl || this.tutorial || ctrl.view.overlay !== 'none') return;
+      const move = suggestMove(ctrl.view.state, ctrl.view.selection);
+      if (!move) return;
+      if (move.selection && JSON.stringify(move.selection) !== JSON.stringify(ctrl.view.selection)) ctrl.select(move.selection);
       this.hintShown = true;
-      this.stage.highlight?.(tile);
+      this.stage.highlight?.(move.tile);
     }, 3000);
   }
 

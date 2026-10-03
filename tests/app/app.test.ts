@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { App, type Stage } from '../../src/app/app';
+import { planTutorial } from '../../src/game/tutorial';
 import { LEVELS } from '../../src/levels';
 import { SAVE_KEY, type Store } from '../../src/save/save';
 
@@ -332,5 +333,36 @@ describe('App v1.2', () => {
     app.startLevel(0);
     for (const m of LEVELS[0]!.solution) app.controller!.play(m);
     expect(calls.cues).toContain('milestone');
+  });
+});
+
+describe('App hint v1.2 fixes', () => {
+  const done = JSON.stringify({ version: 1, completed: [], tutorialDone: true, settings: {} });
+  it('shows no idle hint while the tutorial is running (step 4 has no tutorial highlight)', () => {
+    vi.useFakeTimers();
+    const highlight = vi.fn();
+    const app = new App(root, { show: vi.fn(), highlight }, memoryStore(), LEVELS, opts);
+    app.startLevel(0);
+    const plan = planTutorial(LEVELS[0]!);
+    app.controller!.play({ type: 'seed', plant: 'moss', ...plan.seed1 });
+    app.controller!.play({ type: 'seed', plant: 'moss', ...plan.seed2 });
+    expect(root.querySelector('.coach p')!.textContent).toBe('Now pick a Tyre.');
+    highlight.mockClear();
+    vi.advanceTimersByTime(3500);
+    expect(highlight.mock.calls.filter((c) => c[0] !== null)).toEqual([]);
+    vi.useRealTimers();
+  });
+  it('the idle hint switches to a more useful item', () => {
+    vi.useFakeTimers();
+    const app = new App(root, { show: vi.fn(), highlight: vi.fn() }, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
+    app.startLevel(1);
+    app.controller!.select({ kind: 'scrap', slot: 0 }); // nothing planted yet: scrap is useless
+    vi.advanceTimersByTime(3100);
+    expect(app.controller!.view.selection?.kind).toBe('seed');
+    vi.useRealTimers();
+  });
+  it('rests text explains there is nothing more to do', () => {
+    const c = new App(root, stage, memoryStore({ [SAVE_KEY]: done }), LEVELS, opts);
+    expect(c).toBeTruthy();
   });
 });

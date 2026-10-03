@@ -46,6 +46,13 @@ describe('isStuck / canBonus', () => {
     s.won = true;
     expect(isStuck(s)).toBe(false);
   });
+  it('canBonus needs room for both the seed and the scrap (2 free tiles)', () => {
+    const s = makeState({ width: 2, height: 1, ground: ['..'] });
+    s.tray = [];
+    expect(canBonus(s)).toBe(true);
+    putPlant(s, 0, 0, 'moss', 1);
+    expect(canBonus(s)).toBe(false);
+  });
   it('canBonus is false without a free tile, while scrap remains, or after winning', () => {
     const full = makeState({ width: 1, height: 1, ground: ['.'] });
     putPlant(full, 0, 0, 'moss', 0);
@@ -78,9 +85,30 @@ describe('previewScrap', () => {
 
 describe('isStuck with no free tile', () => {
   it('is true when scrap remains but every tile is blocked, planted or occupied', () => {
-    const s = makeState({ width: 3, height: 1, ground: ['X..'], batches: [['tyre']] });
+    const s = makeState({ width: 3, height: 1, ground: ['X..'], seeds: {}, batches: [['tyre']] });
     putPlant(s, 1, 0, 'moss', 0);
     putObject(s, 2, 0, 'bin', 'small', 'ruin');
     expect(isStuck(s)).toBe(true);
+  });
+});
+
+describe('isStuck: no possible move and no bonus', () => {
+  it('is stuck with one free tile, no seeds, no scrap and no room for a bonus pack', () => {
+    const s = makeState({ width: 2, height: 1, ground: ['..'], seeds: {} });
+    putPlant(s, 0, 0, 'moss', 1);
+    s.tray = [];
+    expect(hasFreeTile(s)).toBe(true);
+    expect(canBonus(s)).toBe(false);
+    expect(isStuck(s)).toBe(true);
+  });
+  it('is not stuck while a seed can still be planted, or a bloom harvested', () => {
+    const s = makeState({ width: 2, height: 1, ground: ['..'], seeds: { moss: 1 } });
+    putPlant(s, 0, 0, 'moss', 1);
+    s.tray = [];
+    expect(isStuck(s)).toBe(false);
+    const b = makeState({ width: 1, height: 1, ground: ['.'], seeds: {} });
+    putPlant(b, 0, 0, 'flower', 3);
+    b.tiles[0]!.plant!.bloom = true;
+    expect(isStuck(b)).toBe(false);
   });
 });

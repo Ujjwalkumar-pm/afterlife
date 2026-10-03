@@ -170,7 +170,7 @@ ${coach ? `<div class="coach" role="status"><span class="coach-step">Step ${coac
   <button data-action="mute" aria-label="Sound" aria-pressed="${m.muted}">${m.muted ? '🔇' : '🔊'}</button>
 </div>
 <footer class="tray">${seeds ? `<span class="group-label">Seeds</span>${seeds}` : ''}${scrap ? `<span class="group-label">Scrap</span>${scrap}` : ''}</footer>
-${this.toastUntil > now ? '<div class="toast" role="status">Bonus crate!</div>' : ''}
+${this.toastUntil > now ? '<div class="toast" role="status">Bonus pack: +2 moss, +1 tyre</div>' : ''}
 ${this.overlay(v, m)}`;
   }
 
@@ -183,7 +183,7 @@ ${this.overlay(v, m)}`;
       return `<div class="overlay" role="dialog" aria-label="Scene restored"><h2>Scene restored</h2>${m.stars ? `<div class="stars" aria-label="${m.stars} of 3 stars">${[1, 2, 3].map((i) => `<span class="star ${i <= m.stars! ? 'on' : ''}" style="animation-delay:${(i - 1) * 150}ms">★</span>`).join('')}</div>` : ''}<p>Nature has taken ${esc(m.name)} back.</p><div class="actions">${primary}<button data-action="keep">Keep decorating</button></div></div>`;
     }
     if (v.overlay === 'rests') {
-      return `<div class="overlay" role="dialog" aria-label="The garden rests"><h2>The garden rests…</h2><p>There is no more scrap to place.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div>`;
+      return `<div class="overlay" role="dialog" aria-label="The garden rests"><h2>The garden rests…</h2><p>Nothing more can grow here. Undo a few moves, or restart.</p><div class="actions"><button data-action="undo" class="primary">Undo</button><button data-action="restart">Restart</button></div></div>`;
     }
     return '';
   }

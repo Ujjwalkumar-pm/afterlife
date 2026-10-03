@@ -104,7 +104,7 @@ describe('tapping', () => {
     expect(c.view.state.tray).toEqual(['cone']);
     expect(c.view.selection).toEqual({ kind: 'scrap', slot: 0 });
     c.tap(at(2, 0), 'mouse');
-    expect(c.view.state.tray).toEqual(['crate']);
+    expect(c.view.state.tray).toEqual(['tyre']);
     expect(c.view.selection).toEqual({ kind: 'scrap', slot: 0 });
   });
 });
@@ -209,7 +209,7 @@ describe('v1.2 assist and bonus', () => {
     const c = new PlayController(makeLevel({ batches: [['tyre']] }));
     const events = c.play({ type: 'scrap', slot: 0, x: 0, y: 0 });
     expect(events.at(-1)).toEqual({ type: 'bonus' });
-    expect(c.view.state.tray).toEqual(['crate']);
+    expect(c.view.state.tray).toEqual(['tyre']);
     expect(c.view.state.bonusUsed).toBe(1);
     expect(c.view.overlay).toBe('none');
   });
@@ -228,5 +228,13 @@ describe('v1.2 assist and bonus', () => {
     c.play({ type: 'seed', plant: 'moss', x: 0, y: 0 });
     expect(c.view.overlay).toBe('rests');
     expect(c.view.state.bonusUsed).toBe(0);
+  });
+});
+
+describe('assist keeps a selection', () => {
+  it('tapping the already-selected item does not turn it off', () => {
+    const c = new PlayController(makeLevel(), { assist: true });
+    c.select({ kind: 'seed', plant: 'moss' });
+    expect(c.view.selection).toEqual({ kind: 'seed', plant: 'moss' });
   });
 });

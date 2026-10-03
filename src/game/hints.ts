@@ -6,6 +6,9 @@ const manhattan = (a: Pos, b: Pos) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 
 /** The tile where the selected item helps most; only ever a tile where the move is valid. */
 export function bestTile(s: GameState, sel: Selection): Pos | null {
+  // Harvesting a bloom gives a free seed: always the best first suggestion.
+  const bloom = s.tiles.findIndex((t) => t.plant?.bloom);
+  if (bloom >= 0) return { x: bloom % s.width, y: Math.floor(bloom / s.width) };
   if (!sel) return null;
   const plants: Pos[] = [];
   s.tiles.forEach((t, i) => t.plant && plants.push({ x: i % s.width, y: Math.floor(i / s.width) }));
@@ -35,4 +38,56 @@ export function bestTile(s: GameState, sel: Selection): Pos | null {
     }
   }
   return best;
+}
+
+export interface Suggestion {
+  selection: Selection;
+  tile: Pos;
+}
+
+const SEED_ORDER = ['moss', 'vine', 'flower', 'bamboo'] as const;
+
+/**
+ * The idle hint: the most useful item and tile, in this order —
+ * harvest a bloom; scrap that adds new cover; a seed while scrap remains to feed it;
+ * scrap that feeds any plant; any seed; any scrap.
+ */
+export function suggestMove(s: GameState, current: Selection): Suggestion | null {
+  const bloom = s.tiles.findIndex((t) => t.plant?.bloom);
+  if (bloom >= 0) return { selection: current, tile: { x: bloom % s.width, y: Math.floor(bloom / s.width) } };
+
+  const base = covered(s);
+  let scrap: { slot: number; tile: Pos; gain: number; near: number } | null = null;
+  const seen = new Set<string>();
+  s.tray.forEach((kind, slot) => {
+    if (seen.has(kind)) return;
+    seen.add(kind);
+    const tile = bestTile(s, { kind: 'scrap', slot });
+    if (!tile) return;
+    const r = placeScrap(s, slot, tile);
+    if (!r.ok) return;
+    const radius = RADIUS[SCRAP[kind].size];
+    const near = s.tiles.filter((t, i) => t.plant && manhattan(tile, { x: i % s.width, y: Math.floor(i / s.width) }) <= radius).length;
+    const cand = { slot, tile, gain: covered(r.state) - base, near };
+    if (!scrap || cand.gain > scrap.gain || (cand.gain === scrap.gain && cand.near > scrap.near)) scrap = cand;
+  });
+
+  const seedTypes = [...(current?.kind === 'seed' ? [current.plant] : []), ...SEED_ORDER].filter((p, i, a) => a.indexOf(p) === i && s.seeds[p] > 0);
+  let seed: Suggestion | null = null;
+  for (const plant of seedTypes) {
+    const tile = bestTile(s, { kind: 'seed', plant });
+    if (tile) {
+      seed = { selection: { kind: 'seed', plant }, tile };
+      break;
+    }
+  }
+  const scrapMove = (c: { slot: number; tile: Pos }): Suggestion => ({ selection: { kind: 'scrap', slot: c.slot }, tile: c.tile });
+  const best = scrap as { slot: number; tile: Pos; gain: number; near: number } | null;
+  const scrapLeft = s.tray.length > 0 || s.batches.length > 0;
+  if (best && best.gain >= 1) return scrapMove(best);
+  if (seed && scrapLeft) return seed;
+  if (best && best.near >= 1) return scrapMove(best);
+  if (seed) return seed;
+  if (best) return scrapMove(best);
+  return null;
 }
