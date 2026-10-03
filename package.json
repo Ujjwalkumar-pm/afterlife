@@ -13,7 +13,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "sprites": "tsx tools/sprites/run.ts"
+    "sprites": "tsx tools/sprites/run.ts",
+    "hero": "tsx tools/capture-hero.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

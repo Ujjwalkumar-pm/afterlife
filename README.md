@@ -2,7 +2,9 @@
 
 A calm isometric web game about nature reclaiming abandoned places. Plant seeds among the ruins, drop scrap to feed them, and watch moss, vines, flowers and bamboo take the scene back.
 
-> Status: in development. The rules engine and levels are done; the playable game is next.
+> Play it: **(live link added at launch)** · v1 complete: 5 places, generative soundtrack, Kenney props.
+
+![Afterlife](public/hero.png)
 
 ## How it plays
 
@@ -13,9 +15,12 @@ A calm isometric web game about nature reclaiming abandoned places. Plant seeds 
 ## Development
 
     npm install
+    npm run dev         # play locally at http://localhost:5173/play/
     npm test            # rules engine + level solvability tests
     npm run typecheck
     npm run solve -- src/levels/01-bus-stop.json   # regenerate a level's reference solution
+    npm run sprites     # re-render Kenney props (needs npm run dev running)
+    npm run hero        # re-capture the landing hero and share images (needs npm run dev)
 
 The rules live in `src/engine/`, pure TypeScript with no framework. Levels are JSON files in `src/levels/`.
 
@@ -23,7 +28,8 @@ The rules live in `src/engine/`, pure TypeScript with no framework. Levels are J
 
 - Design and direction: Ujjwal Kumar
 - Inspired by the mechanics of *Cloud Gardens* by Noio. Afterlife uses no names, art, levels or audio from it.
-- Art (coming in v1): Kenney.nl assets, CC0.
+- Props rendered from [Kenney](https://kenney.nl) CC0 3D models (licence in assets/LICENSES/); plants and ground are drawn in code.
+- Soundtrack generated live with Tone.js.
 
 ## Licence
 
